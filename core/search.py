@@ -9,7 +9,7 @@ Matching is layered so that precision comes first:
     4. substring match, as a last resort
 """
 
-from .arabic_utils import key_strict, key_loose, key_bare
+from .arabic_utils import key_exact, key_strict, key_loose, key_bare
 from .morphology import ArabicMorphology
 from .validation import InputValidator
 
@@ -27,7 +27,7 @@ class VerbSearch:
         self._bare = {}
         for verb in self.verbs:
             ar = verb.get('arabic', '')
-            self._exact.setdefault(ar, []).append(verb)
+            self._exact.setdefault(key_exact(ar), []).append(verb)
             self._strict.setdefault(key_strict(ar), []).append(verb)
             self._loose.setdefault(key_loose(ar), []).append(verb)
             self._bare.setdefault(key_bare(ar), []).append(verb)
@@ -59,13 +59,13 @@ class VerbSearch:
 
     # ------------------------------------------------------------------
     def search_exact(self, query: str) -> list:
-        """Literal, fully-diacritised match only."""
-        return list(self._exact.get((query or '').strip(), []))
+        """Fully-diacritised match (insensitive only to mark ordering)."""
+        return list(self._exact.get(key_exact(query), []))
 
     def search_arabic(self, query: str) -> list:
         """Ranked Arabic lookup; the first hit is the best hit."""
         query = query.strip()
-        for table, key in ((self._exact, lambda q: q),
+        for table, key in ((self._exact, key_exact),
                            (self._strict, key_strict),
                            (self._loose, key_loose),
                            (self._bare, key_bare)):
@@ -86,7 +86,7 @@ class VerbSearch:
         """'exact' | 'vowelless' | 'loose' | 'partial' — shown to the user."""
         ar = verb.get('arabic', '')
         q = query.strip()
-        if q == ar:
+        if key_exact(q) == key_exact(ar):
             return 'exact'
         if key_strict(q) == key_strict(ar):
             return 'vowelless'

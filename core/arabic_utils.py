@@ -70,6 +70,25 @@ def join_units(units) -> str:
     return ''.join(letter + marks for letter, marks in units)
 
 
+#: order marks are written in within one letter: shadda, then the vowel,
+#: then anything else.  Both orders occur in real text and in what users type,
+#: so everything is canonicalised before it is compared or displayed.
+_MARK_RANK = {SHADDA: 0, FATHA: 1, DAMMA: 1, KASRA: 1,
+              FATHATAN: 1, DAMMATAN: 1, KASRATAN: 1, SUKUN: 1}
+
+
+def canonical_marks(text: str) -> str:
+    """Put the diacritics of every letter into canonical order."""
+    if not text:
+        return ''
+    out = []
+    for letter, marks in split_units(text):
+        if len(marks) > 1:
+            marks = ''.join(sorted(marks, key=lambda m: _MARK_RANK.get(m, 2)))
+        out.append(letter + marks)
+    return ''.join(out)
+
+
 def strip_marks(text: str) -> str:
     """Remove *all* diacritics, shadda included (display/loose compare)."""
     if not text:
@@ -108,6 +127,11 @@ def normalise_letters(text: str) -> str:
         else:
             out.append(ch)
     return ''.join(out)
+
+
+def key_exact(text: str) -> str:
+    """Full-diacritic key, insensitive only to how marks were ordered."""
+    return canonical_marks((text or '').strip())
 
 
 def key_strict(text: str) -> str:
@@ -180,4 +204,4 @@ def tidy(form: str) -> str:
     for v in SHORT_VOWELS:
         form = form.replace(v + v, v)
     form = form.replace(SUKUN + SUKUN, SUKUN)
-    return form
+    return canonical_marks(form)

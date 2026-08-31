@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from .arabic_utils import key_strict, key_loose
+from .arabic_utils import key_exact, key_strict, key_loose
 from .abwaab import get_baab, mazeed_abwaab, ALL_BAAB_ORDER, BAAB_INFO
 from .morphology import ArabicMorphology
 from .conjugation import (
@@ -76,7 +76,8 @@ class VerbAnalyzer:
                     if not form:
                         continue
                     hit = (verb.get('id'), tense, row)
-                    self._form_index_exact.setdefault(form, []).append(hit)
+                    self._form_index_exact.setdefault(
+                        key_exact(form), []).append(hit)
                     self._form_index_strict.setdefault(
                         key_strict(form), []).append(hit)
                     self._form_index_loose.setdefault(
@@ -214,7 +215,7 @@ class VerbAnalyzer:
     def parse_conjugated(self, word: str, exact_only: bool = False) -> dict:
         """Identify tense / person / gender / number of an inflected form."""
         word = (word or '').strip()
-        hits = self._form_index_exact.get(word)
+        hits = self._form_index_exact.get(key_exact(word))
         if not hits and not exact_only:
             hits = (self._form_index_strict.get(key_strict(word))
                     or self._form_index_loose.get(key_loose(word)))

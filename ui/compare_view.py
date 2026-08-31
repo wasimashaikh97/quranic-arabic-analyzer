@@ -1,151 +1,116 @@
+# -*- coding: utf-8 -*-
+"""⚖ تقابل — compare two verbs side by side.
+
+Differences between the two are highlighted so a student can see what the باب
+actually changes.
+"""
+
 import streamlit as st
-import streamlit.components.v1 as components
 
-def render_compare_view(analyzer, lang: str = 'en', translations: dict = None, font_scale: float = 1.0):
-    st.markdown("<h2>⚖️ تقابل — Verb Comparison</h2>", unsafe_allow_html=True)
-    
-    if translations is None:
-        translations = {}
+from core.conjugation import TENSE_ORDER
+from core.morphology import ArabicMorphology
+from . import theme
+from .theme import t
 
-    def t(key):
-        return translations.get(key, key)
+
+def render_compare_view(analyzer, lang: str = 'ur', translations: dict = None,
+                        font_scale: float = 1.0):
+    st.markdown('### %s' % t('compare', lang))
 
     verbs = getattr(analyzer, 'verbs', [])
     if not verbs:
-        st.warning("No verbs available for comparison." if lang == 'en' else "تقابل کے لیے کوئی افعال دستیاب نہیں۔")
+        theme.notice(t('no_data', lang))
         return
 
-    verb_options = {
-        i: f"{v.get('arabic', '')} — {v.get('meaning_urdu', '')} ({v.get('meaning_english', '')})"
-        for i, v in enumerate(verbs)
-    }
+    labels = {i: '%s — %s (%s)' % (v.get('arabic', ''),
+                                   v.get('meaning_urdu', ''),
+                                   v.get('baab_name_arabic', ''))
+              for i, v in enumerate(verbs)}
 
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        v1_idx = st.selectbox("پہلا فعل (First Verb)", options=list(verb_options.keys()), format_func=lambda x: verb_options[x], key="v1_select")
-    
-    with col2:
-        v2_idx = st.selectbox("دوسرا فعل (Second Verb)", options=list(verb_options.keys()), format_func=lambda x: verb_options[x], key="v2_select")
+    # default to two verbs of the same root, which is the instructive case
+    default_a = 0
+    default_b = next((i for i, v in enumerate(verbs)
+                      if v.get('root') == verbs[0].get('root')
+                      and v.get('id') != verbs[0].get('id')), min(1, len(verbs) - 1))
 
-    if v1_idx is not None and v2_idx is not None:
-        v1 = verbs[v1_idx]
-        v2 = verbs[v2_idx]
+    col_a, col_b = st.columns(2)
+    with col_a:
+        idx_a = st.selectbox('پہلا فعل', list(labels), index=default_a,
+                             format_func=lambda i: labels[i], key='cmp_a')
+    with col_b:
+        idx_b = st.selectbox('دوسرا فعل', list(labels), index=default_b,
+                             format_func=lambda i: labels[i], key='cmp_b')
 
-        st.markdown("### بنیادی معلومات (Basic Info)")
-        
-        # Helper to highlight differences
-        def hl(val1, val2, current_val, is_v1=True):
-            color = "#f59e0b" if is_v1 else "#38bdf8"
-            if val1 != val2:
-                return f"<span style='color: #ef4444; font-weight: bold;'>{current_val}</span>"
-            return f"<span style='color: {color};'>{current_val}</span>"
+    v_a, v_b = verbs[idx_a], verbs[idx_b]
+    conj_a = analyzer.conjugate(v_a)
+    conj_b = analyzer.conjugate(v_b)
+    na = t('not_applicable', lang)
 
-        info_html = f"""
-        <div dir="rtl" style="display: flex; justify-content: space-between; background-color: #1a202c; padding: 20px; border-radius: 10px; color: white;">
-            <div style="width: 48%; padding: 10px; border-left: 1px solid #4a5568;">
-                <h4 style="color: #f59e0b; text-align: center;">{v1.get('arabic', '')}</h4>
-                <p><b>مادہ (Root):</b> {hl(v1.get('root'), v2.get('root'), v1.get('root'), True)}</p>
-                <p><b>باب (Form/Pattern):</b> {hl(v1.get('pattern', v1.get('form')), v2.get('pattern', v2.get('form')), v1.get('pattern', v1.get('form')), True)}</p>
-                <p><b>مصدر (Masdar):</b> {hl(v1.get('masdar'), v2.get('masdar'), v1.get('masdar'), True)}</p>
-                <p><b>قسم (Type):</b> {hl(v1.get('verb_type'), v2.get('verb_type'), v1.get('verb_type'), True)}</p>
-                <p><b>لازم/متعدی (Transitivity):</b> {hl(v1.get('transitivity'), v2.get('transitivity'), v1.get('transitivity'), True)}</p>
-                <p><b>معنی (Urdu):</b> {v1.get('meaning_urdu', '')}</p>
-                <p><b>Meaning (English):</b> {v1.get('meaning_english', '')}</p>
-            </div>
-            <div style="width: 48%; padding: 10px;">
-                <h4 style="color: #38bdf8; text-align: center;">{v2.get('arabic', '')}</h4>
-                <p><b>مادہ (Root):</b> {hl(v1.get('root'), v2.get('root'), v2.get('root'), False)}</p>
-                <p><b>باب (Form/Pattern):</b> {hl(v1.get('pattern', v1.get('form')), v2.get('pattern', v2.get('form')), v2.get('pattern', v2.get('form')), False)}</p>
-                <p><b>مصدر (Masdar):</b> {hl(v1.get('masdar'), v2.get('masdar'), v2.get('masdar'), False)}</p>
-                <p><b>قسم (Type):</b> {hl(v1.get('verb_type'), v2.get('verb_type'), v2.get('verb_type'), False)}</p>
-                <p><b>لازم/متعدی (Transitivity):</b> {hl(v1.get('transitivity'), v2.get('transitivity'), v2.get('transitivity'), False)}</p>
-                <p><b>معنی (Urdu):</b> {v2.get('meaning_urdu', '')}</p>
-                <p><b>Meaning (English):</b> {v2.get('meaning_english', '')}</p>
-            </div>
-        </div>
-        """
-        st.markdown(info_html, unsafe_allow_html=True)
+    # ---- side-by-side facts, differences marked ------------------------
+    type_a = ArabicMorphology.get_verb_type_info(v_a.get('verb_type', 'sound'))
+    type_b = ArabicMorphology.get_verb_type_info(v_b.get('verb_type', 'sound'))
 
-        conj1 = analyzer.conjugation_engine.conjugate_verb(v1) if hasattr(analyzer, 'conjugation_engine') else {}
-        conj2 = analyzer.conjugation_engine.conjugate_verb(v2) if hasattr(analyzer, 'conjugation_engine') else {}
+    fields = [
+        (t('root', lang), v_a.get('root', ''), v_b.get('root', '')),
+        (t('baab', lang), v_a.get('baab_name_arabic', ''),
+         v_b.get('baab_name_arabic', '')),
+        (t('wazn', lang), v_a.get('wazn', ''), v_b.get('wazn', '')),
+        (t('past_active', lang), v_a.get('past_3ms') or '—',
+         v_b.get('past_3ms') or '—'),
+        (t('present_active', lang), v_a.get('present_3ms') or '—',
+         v_b.get('present_3ms') or '—'),
+        (t('past_passive', lang), v_a.get('past_passive_3ms') or na,
+         v_b.get('past_passive_3ms') or na),
+        (t('present_passive', lang), v_a.get('present_passive_3ms') or na,
+         v_b.get('present_passive_3ms') or na),
+        (t('masdar', lang), v_a.get('masdar') or '—', v_b.get('masdar') or '—'),
+        (t('ism_fail', lang), v_a.get('ism_fail') or '—',
+         v_b.get('ism_fail') or '—'),
+        (t('ism_mafool', lang), v_a.get('ism_mafool') or na,
+         v_b.get('ism_mafool') or na),
+        (t('verb_type', lang), type_a.get('title_ur', ''),
+         type_b.get('title_ur', '')),
+        (t('transitivity', lang), v_a.get('transitivity', ''),
+         v_b.get('transitivity', '')),
+        (t('meaning_ur', lang), v_a.get('meaning_urdu', ''),
+         v_b.get('meaning_urdu', '')),
+        (t('meaning_en', lang), v_a.get('meaning_english', ''),
+         v_b.get('meaning_english', '')),
+    ]
 
-        def get_conj_list(conj, tense):
-            return conj.get(tense, [])
+    rows = []
+    for label, val_a, val_b in fields:
+        differs = (val_a != val_b)
+        mark = ' ✱' if differs else ''
+        rows.append([label, str(val_a) + mark, str(val_b) + mark])
 
-        past1 = get_conj_list(conj1, 'past')
-        past2 = get_conj_list(conj2, 'past')
+    st.markdown(theme.simple_table(
+        [t('th_sigha', lang), v_a.get('arabic', ''), v_b.get('arabic', '')],
+        rows, lang, ['qa-ur', 'qa-ar', 'qa-ar']), unsafe_allow_html=True)
+    theme.notice('✱ کے نشان والی سطریں دونوں افعال میں مختلف ہیں۔', 'info')
 
-        present1 = get_conj_list(conj1, 'present')
-        present2 = get_conj_list(conj2, 'present')
-
-        def build_table(title, data1, data2):
-            rows = ""
-            length = max(len(data1), len(data2), 14)
+    # ---- gardaan side by side -------------------------------------------
+    for key in TENSE_ORDER:
+        rows_a = conj_a.get(key) or []
+        rows_b = conj_b.get(key) or []
+        if not rows_a and not rows_b:
+            continue
+        with st.expander('📖 %s' % t(key, lang), expanded=(key == 'past_active')):
+            length = max(len(rows_a), len(rows_b))
+            table_rows = []
             for i in range(length):
-                d1 = data1[i] if i < len(data1) else {}
-                d2 = data2[i] if i < len(data2) else {}
-                
-                pronoun = d1.get('pronoun_arabic', d2.get('pronoun_arabic', ''))
-                
-                rows += f"""
-                <tr>
-                    <td style="text-align: center; border: 1px solid #4a5568; padding: 8px;">{pronoun}</td>
-                    <td style="text-align: center; color: #f59e0b; font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em; border: 1px solid #4a5568; padding: 8px;">{d1.get('arabic', '')}</td>
-                    <td style="text-align: center; border: 1px solid #4a5568; padding: 8px;">{d1.get('urdu', '')}</td>
-                    <td style="text-align: center; color: #38bdf8; font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em; border: 1px solid #4a5568; padding: 8px;">{d2.get('arabic', '')}</td>
-                    <td style="text-align: center; border: 1px solid #4a5568; padding: 8px;">{d2.get('urdu', '')}</td>
-                </tr>
-                """
-            
-            html = f"""
-            <div dir="rtl" style="background-color: #1a202c; color: white; padding: 10px; border-radius: 5px;">
-                <h3 style="color: #2b6cb0; text-align: center; margin-bottom: 10px;">{title}</h3>
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                    <thead style="background-color: #2d3748;">
-                        <tr>
-                            <th style="border: 1px solid #4a5568; padding: 10px;">ضمیر</th>
-                            <th style="border: 1px solid #4a5568; padding: 10px; color: #f59e0b;">عربی 1</th>
-                            <th style="border: 1px solid #4a5568; padding: 10px; color: #f59e0b;">اردو 1</th>
-                            <th style="border: 1px solid #4a5568; padding: 10px; color: #38bdf8;">عربی 2</th>
-                            <th style="border: 1px solid #4a5568; padding: 10px; color: #38bdf8;">اردو 2</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows}
-                    </tbody>
-                </table>
-            </div>
-            """
-            return html
-
-        if past1 or past2:
-            st.markdown("### ماضی (Past Tense)")
-            past_html = build_table("ماضی (Past Tense)", past1, past2)
-            components.html(past_html, height=60 + 14 * 50, scrolling=True)
-
-        if present1 or present2:
-            st.markdown("### مضارع (Present Tense)")
-            present_html = build_table("مضارع (Present Tense)", present1, present2)
-            components.html(present_html, height=60 + 14 * 50, scrolling=True)
-            
-        st.markdown("### مشتقات (Derived Forms)")
-        d_html = f"""
-        <div dir="rtl" style="display: flex; justify-content: space-between; background-color: #1a202c; padding: 20px; border-radius: 10px; color: white;">
-            <div style="width: 48%; padding: 10px; border-left: 1px solid #4a5568;">
-                <h4 style="color: #f59e0b; text-align: center;">{v1.get('arabic', '')}</h4>
-                <p><b>اسم الفاعل:</b> <span style="font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em;">{v1.get('derived_nouns', {{}}).get('ism_faail', '')}</span></p>
-                <p><b>اسم المفعول:</b> <span style="font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em;">{v1.get('derived_nouns', {{}}).get('ism_mafool', '')}</span></p>
-                <p><b>اسم الظرف:</b> <span style="font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em;">{v1.get('derived_nouns', {{}}).get('ism_zarf', '')}</span></p>
-                <p><b>اسم الآلة:</b> <span style="font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em;">{v1.get('derived_nouns', {{}}).get('ism_aala', '')}</span></p>
-            </div>
-            <div style="width: 48%; padding: 10px;">
-                <h4 style="color: #38bdf8; text-align: center;">{v2.get('arabic', '')}</h4>
-                <p><b>اسم الفاعل:</b> <span style="font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em;">{v2.get('derived_nouns', {{}}).get('ism_faail', '')}</span></p>
-                <p><b>اسم المفعول:</b> <span style="font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em;">{v2.get('derived_nouns', {{}}).get('ism_mafool', '')}</span></p>
-                <p><b>اسم الظرف:</b> <span style="font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em;">{v2.get('derived_nouns', {{}}).get('ism_zarf', '')}</span></p>
-                <p><b>اسم الآلة:</b> <span style="font-family: 'Noto Naskh Arabic', serif; font-size: {1.2 * font_scale}em;">{v2.get('derived_nouns', {{}}).get('ism_aala', '')}</span></p>
-            </div>
-        </div>
-        """
-        st.markdown(d_html, unsafe_allow_html=True)
+                a = rows_a[i] if i < len(rows_a) else {}
+                b = rows_b[i] if i < len(rows_b) else {}
+                pronoun = a.get('pronoun_arabic') or b.get('pronoun_arabic', '')
+                table_rows.append([
+                    pronoun,
+                    a.get('arabic', na if not rows_a else '—'),
+                    b.get('arabic', na if not rows_b else '—'),
+                    a.get('meaning_urdu') or b.get('meaning_urdu', ''),
+                ])
+            st.markdown(theme.simple_table(
+                [t('th_pronoun', lang), v_a.get('arabic', ''),
+                 v_b.get('arabic', ''), t('th_urdu', lang)],
+                table_rows, lang,
+                ['qa-pron', 'qa-ar', 'qa-ar', 'qa-ur']),
+                unsafe_allow_html=True)
