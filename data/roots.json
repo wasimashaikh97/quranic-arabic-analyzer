@@ -1,0 +1,1482 @@
+{
+ "roots": [
+  {
+   "root": "أ ك ل",
+   "root_letters": [
+    "أ",
+    "ك",
+    "ل"
+   ],
+   "basic_meaning_arabic": "الأكل",
+   "basic_meaning_urdu": "کھانا",
+   "basic_meaning_english": "eating",
+   "root_type": "hamzated",
+   "related_verbs": [
+    "v015"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": [
+    {
+     "arabic": "أَكْل",
+     "meaning_urdu": "کھانا",
+     "meaning_english": "eating",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "طَعَام",
+     "meaning_urdu": "کھانا (غذا)",
+     "meaning_english": "food",
+     "type": "اسم"
+    },
+    {
+     "arabic": "مَأْكُول",
+     "meaning_urdu": "کھایا ہوا",
+     "meaning_english": "eaten",
+     "type": "اسم مفعول"
+    }
+   ]
+  },
+  {
+   "root": "أ م ر",
+   "root_letters": [
+    "أ",
+    "م",
+    "ر"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "حکم دینا",
+   "basic_meaning_english": "to command",
+   "root_type": "hamzated",
+   "related_verbs": [
+    "v036"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ب ي ع",
+   "root_letters": [
+    "ب",
+    "ي",
+    "ع"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "بیچنا",
+   "basic_meaning_english": "to sell",
+   "root_type": "hollow",
+   "related_verbs": [
+    "v039"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ج ع ل",
+   "root_letters": [
+    "ج",
+    "ع",
+    "ل"
+   ],
+   "basic_meaning_arabic": "الجعل",
+   "basic_meaning_urdu": "بنانا",
+   "basic_meaning_english": "making",
+   "root_type": "sound",
+   "related_verbs": [
+    "v007"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": [
+    {
+     "arabic": "جَعْل",
+     "meaning_urdu": "بنانا",
+     "meaning_english": "making",
+     "type": "مصدر"
+    }
+   ]
+  },
+  {
+   "root": "ج م ع",
+   "root_letters": [
+    "ج",
+    "م",
+    "ع"
+   ],
+   "basic_meaning_arabic": "الجمع",
+   "basic_meaning_urdu": "جمع کرنا",
+   "basic_meaning_english": "gathering",
+   "root_type": "sound",
+   "related_verbs": [
+    "v072",
+    "v073"
+   ],
+   "abwaab_present": [
+    1,
+    8
+   ],
+   "derived_words": [
+    {
+     "arabic": "جَمْع",
+     "meaning_urdu": "جمع کرنا",
+     "meaning_english": "gathering",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "جُمْعَة",
+     "meaning_urdu": "جمعہ",
+     "meaning_english": "Friday",
+     "type": "اسم"
+    },
+    {
+     "arabic": "مَسْجِد جَامِع",
+     "meaning_urdu": "جامع مسجد",
+     "meaning_english": "congregational mosque",
+     "type": "اسم"
+    },
+    {
+     "arabic": "اِجْتِمَاع",
+     "meaning_urdu": "اجتماع",
+     "meaning_english": "assembly",
+     "type": "مصدر باب افتعال"
+    }
+   ]
+  },
+  {
+   "root": "ح س ب",
+   "root_letters": [
+    "ح",
+    "س",
+    "ب"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "شمار کرنا",
+   "basic_meaning_english": "to reckon",
+   "root_type": "sound",
+   "related_verbs": [
+    "v058",
+    "v059"
+   ],
+   "abwaab_present": [
+    1,
+    3
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "خ ر ج",
+   "root_letters": [
+    "خ",
+    "ر",
+    "ج"
+   ],
+   "basic_meaning_arabic": "الخروج",
+   "basic_meaning_urdu": "نکلنا",
+   "basic_meaning_english": "going out",
+   "root_type": "sound",
+   "related_verbs": [
+    "v009",
+    "v027",
+    "v028"
+   ],
+   "abwaab_present": [
+    1,
+    4,
+    10
+   ],
+   "derived_words": [
+    {
+     "arabic": "خُرُوج",
+     "meaning_urdu": "نکلنا",
+     "meaning_english": "exit",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "مَخْرَج",
+     "meaning_urdu": "نکلنے کی جگہ",
+     "meaning_english": "way out",
+     "type": "اسم مکان"
+    },
+    {
+     "arabic": "إِخْرَاج",
+     "meaning_urdu": "نکالنا",
+     "meaning_english": "expulsion",
+     "type": "مصدر باب إفعال"
+    }
+   ]
+  },
+  {
+   "root": "خ ط ف",
+   "root_letters": [
+    "خ",
+    "ط",
+    "ف"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "جھپٹنا",
+   "basic_meaning_english": "to snatch",
+   "root_type": "sound",
+   "related_verbs": [
+    "v063",
+    "v064"
+   ],
+   "abwaab_present": [
+    1,
+    5
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "خ ف ف",
+   "root_letters": [
+    "خ",
+    "ف",
+    "ف"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "ہلکا کرنا",
+   "basic_meaning_english": "to lighten",
+   "root_type": "doubled",
+   "related_verbs": [
+    "v057"
+   ],
+   "abwaab_present": [
+    2
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "خ ل ف",
+   "root_letters": [
+    "خ",
+    "ل",
+    "ف"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "جانشین بننا",
+   "basic_meaning_english": "to succeed",
+   "root_type": "sound",
+   "related_verbs": [
+    "v074",
+    "v075"
+   ],
+   "abwaab_present": [
+    1,
+    8
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "خ ل ق",
+   "root_letters": [
+    "خ",
+    "ل",
+    "ق"
+   ],
+   "basic_meaning_arabic": "الخلق",
+   "basic_meaning_urdu": "پیدا کرنا",
+   "basic_meaning_english": "creation",
+   "root_type": "sound",
+   "related_verbs": [
+    "v006"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": [
+    {
+     "arabic": "خَلْق",
+     "meaning_urdu": "مخلوق، پیدائش",
+     "meaning_english": "creation",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "خَالِق",
+     "meaning_urdu": "پیدا کرنے والا",
+     "meaning_english": "Creator",
+     "type": "اسم فاعل"
+    },
+    {
+     "arabic": "مَخْلُوق",
+     "meaning_urdu": "پیدا کیا گیا",
+     "meaning_english": "created being",
+     "type": "اسم مفعول"
+    }
+   ]
+  },
+  {
+   "root": "خ و ف",
+   "root_letters": [
+    "خ",
+    "و",
+    "ف"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "ڈرنا",
+   "basic_meaning_english": "to fear",
+   "root_type": "hollow",
+   "related_verbs": [
+    "v041"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "د خ ل",
+   "root_letters": [
+    "د",
+    "خ",
+    "ل"
+   ],
+   "basic_meaning_arabic": "الدخول",
+   "basic_meaning_urdu": "داخل ہونا",
+   "basic_meaning_english": "entering",
+   "root_type": "sound",
+   "related_verbs": [
+    "v008",
+    "v029",
+    "v030"
+   ],
+   "abwaab_present": [
+    1,
+    4,
+    6
+   ],
+   "derived_words": [
+    {
+     "arabic": "دُخُول",
+     "meaning_urdu": "داخل ہونا",
+     "meaning_english": "entry",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "مَدْخَل",
+     "meaning_urdu": "داخلے کی جگہ",
+     "meaning_english": "entrance",
+     "type": "اسم مکان"
+    },
+    {
+     "arabic": "دَاخِل",
+     "meaning_urdu": "داخل ہونے والا",
+     "meaning_english": "one entering",
+     "type": "اسم فاعل"
+    }
+   ]
+  },
+  {
+   "root": "د ع و",
+   "root_letters": [
+    "د",
+    "ع",
+    "و"
+   ],
+   "basic_meaning_arabic": "الدعاء",
+   "basic_meaning_urdu": "پکارنا",
+   "basic_meaning_english": "calling",
+   "root_type": "defective",
+   "related_verbs": [
+    "v011"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": [
+    {
+     "arabic": "دُعَاء",
+     "meaning_urdu": "دعا",
+     "meaning_english": "supplication",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "دَاعٍ",
+     "meaning_urdu": "پکارنے والا",
+     "meaning_english": "caller",
+     "type": "اسم فاعل"
+    },
+    {
+     "arabic": "دَعْوَة",
+     "meaning_urdu": "دعوت",
+     "meaning_english": "invitation",
+     "type": "اسم"
+    }
+   ]
+  },
+  {
+   "root": "ر د د",
+   "root_letters": [
+    "ر",
+    "د",
+    "د"
+   ],
+   "basic_meaning_arabic": "الرد",
+   "basic_meaning_urdu": "لوٹانا",
+   "basic_meaning_english": "returning",
+   "root_type": "doubled",
+   "related_verbs": [
+    "v014"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": [
+    {
+     "arabic": "رَدّ",
+     "meaning_urdu": "لوٹانا، جواب",
+     "meaning_english": "response",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "مَرْدُود",
+     "meaning_urdu": "لوٹایا گیا",
+     "meaning_english": "rejected",
+     "type": "اسم مفعول"
+    }
+   ]
+  },
+  {
+   "root": "ر س ل",
+   "root_letters": [
+    "ر",
+    "س",
+    "ل"
+   ],
+   "basic_meaning_arabic": "الإرسال",
+   "basic_meaning_urdu": "بھیجنا",
+   "basic_meaning_english": "sending",
+   "root_type": "sound",
+   "related_verbs": [
+    "v016"
+   ],
+   "abwaab_present": [
+    4
+   ],
+   "derived_words": [
+    {
+     "arabic": "رَسُول",
+     "meaning_urdu": "رسول، پیغام بر",
+     "meaning_english": "messenger",
+     "type": "اسم"
+    },
+    {
+     "arabic": "رِسَالَة",
+     "meaning_urdu": "پیغام",
+     "meaning_english": "message",
+     "type": "اسم"
+    },
+    {
+     "arabic": "مُرْسَل",
+     "meaning_urdu": "بھیجا گیا",
+     "meaning_english": "sent",
+     "type": "اسم مفعول"
+    }
+   ]
+  },
+  {
+   "root": "ر ف ع",
+   "root_letters": [
+    "ر",
+    "ف",
+    "ع"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "بلند کرنا",
+   "basic_meaning_english": "to raise",
+   "root_type": "sound",
+   "related_verbs": [
+    "v076",
+    "v077"
+   ],
+   "abwaab_present": [
+    1,
+    8
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ر م ي",
+   "root_letters": [
+    "ر",
+    "م",
+    "ي"
+   ],
+   "basic_meaning_arabic": "الرمي",
+   "basic_meaning_urdu": "پھینکنا",
+   "basic_meaning_english": "throwing",
+   "root_type": "defective",
+   "related_verbs": [
+    "v012"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": [
+    {
+     "arabic": "رَمْي",
+     "meaning_urdu": "پھینکنا",
+     "meaning_english": "throwing",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "مَرْمَى",
+     "meaning_urdu": "نشانہ",
+     "meaning_english": "target",
+     "type": "اسم مکان"
+    }
+   ]
+  },
+  {
+   "root": "ر و ي",
+   "root_letters": [
+    "ر",
+    "و",
+    "ي"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "روایت کرنا",
+   "basic_meaning_english": "to narrate",
+   "root_type": "lafeef",
+   "related_verbs": [
+    "v048"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "س أ ل",
+   "root_letters": [
+    "س",
+    "أ",
+    "ل"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "پوچھنا",
+   "basic_meaning_english": "to ask",
+   "root_type": "hamzated",
+   "related_verbs": [
+    "v034"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "س ع ي",
+   "root_letters": [
+    "س",
+    "ع",
+    "ي"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "کوشش کرنا",
+   "basic_meaning_english": "to strive",
+   "root_type": "defective",
+   "related_verbs": [
+    "v042"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ش د د",
+   "root_letters": [
+    "ش",
+    "د",
+    "د"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "سخت کرنا",
+   "basic_meaning_english": "to tighten",
+   "root_type": "doubled",
+   "related_verbs": [
+    "v045"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ص و م",
+   "root_letters": [
+    "ص",
+    "و",
+    "م"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "روزہ رکھنا",
+   "basic_meaning_english": "to fast",
+   "root_type": "hollow",
+   "related_verbs": [
+    "v040"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ض ر ب",
+   "root_letters": [
+    "ض",
+    "ر",
+    "ب"
+   ],
+   "basic_meaning_arabic": "الضرب",
+   "basic_meaning_urdu": "مارنا",
+   "basic_meaning_english": "striking",
+   "root_type": "sound",
+   "related_verbs": [
+    "v003",
+    "v031"
+   ],
+   "abwaab_present": [
+    1,
+    4
+   ],
+   "derived_words": [
+    {
+     "arabic": "ضَرْب",
+     "meaning_urdu": "مارنا",
+     "meaning_english": "a strike",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "مِضْرَاب",
+     "meaning_urdu": "مارنے کا آلہ",
+     "meaning_english": "a beater",
+     "type": "اسم آلہ"
+    }
+   ]
+  },
+  {
+   "root": "ع ت ب",
+   "root_letters": [
+    "ع",
+    "ت",
+    "ب"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "ملامت کرنا",
+   "basic_meaning_english": "to reproach",
+   "root_type": "sound",
+   "related_verbs": [
+    "v083",
+    "v084"
+   ],
+   "abwaab_present": [
+    1,
+    10
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ع ل م",
+   "root_letters": [
+    "ع",
+    "ل",
+    "م"
+   ],
+   "basic_meaning_arabic": "العلم",
+   "basic_meaning_urdu": "علم",
+   "basic_meaning_english": "knowledge",
+   "root_type": "sound",
+   "related_verbs": [
+    "v005",
+    "v022",
+    "v032",
+    "v023"
+   ],
+   "abwaab_present": [
+    1,
+    2,
+    4,
+    5
+   ],
+   "derived_words": [
+    {
+     "arabic": "عِلْم",
+     "meaning_urdu": "علم",
+     "meaning_english": "knowledge",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "عَالِم",
+     "meaning_urdu": "جاننے والا",
+     "meaning_english": "scholar",
+     "type": "اسم فاعل"
+    },
+    {
+     "arabic": "مَعْلُوم",
+     "meaning_urdu": "معلوم",
+     "meaning_english": "known",
+     "type": "اسم مفعول"
+    },
+    {
+     "arabic": "تَعْلِيم",
+     "meaning_urdu": "تعلیم",
+     "meaning_english": "education",
+     "type": "مصدر باب تفعیل"
+    },
+    {
+     "arabic": "مُعَلِّم",
+     "meaning_urdu": "استاد",
+     "meaning_english": "teacher",
+     "type": "اسم فاعل باب تفعیل"
+    }
+   ]
+  },
+  {
+   "root": "ع و ن",
+   "root_letters": [
+    "ع",
+    "و",
+    "ن"
+   ],
+   "basic_meaning_arabic": "العون",
+   "basic_meaning_urdu": "مدد",
+   "basic_meaning_english": "aid",
+   "root_type": "hollow",
+   "related_verbs": [
+    "v065",
+    "v066"
+   ],
+   "abwaab_present": [
+    4,
+    6
+   ],
+   "derived_words": [
+    {
+     "arabic": "عَوْن",
+     "meaning_urdu": "مدد",
+     "meaning_english": "aid",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "مُعِين",
+     "meaning_urdu": "مدد کرنے والا",
+     "meaning_english": "helper",
+     "type": "اسم فاعل"
+    },
+    {
+     "arabic": "تَعَاوُن",
+     "meaning_urdu": "باہمی تعاون",
+     "meaning_english": "cooperation",
+     "type": "مصدر باب تفاعل"
+    }
+   ]
+  },
+  {
+   "root": "غ ف ر",
+   "root_letters": [
+    "غ",
+    "ف",
+    "ر"
+   ],
+   "basic_meaning_arabic": "المغفرة",
+   "basic_meaning_urdu": "بخشش",
+   "basic_meaning_english": "forgiveness",
+   "root_type": "sound",
+   "related_verbs": [
+    "v080",
+    "v081"
+   ],
+   "abwaab_present": [
+    1,
+    10
+   ],
+   "derived_words": [
+    {
+     "arabic": "مَغْفِرَة",
+     "meaning_urdu": "بخشش",
+     "meaning_english": "forgiveness",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "غَفُور",
+     "meaning_urdu": "بہت بخشنے والا",
+     "meaning_english": "Most Forgiving",
+     "type": "صفت"
+    },
+    {
+     "arabic": "اِسْتِغْفَار",
+     "meaning_urdu": "بخشش مانگنا",
+     "meaning_english": "seeking forgiveness",
+     "type": "مصدر باب استفعال"
+    }
+   ]
+  },
+  {
+   "root": "ف ت ح",
+   "root_letters": [
+    "ف",
+    "ت",
+    "ح"
+   ],
+   "basic_meaning_arabic": "الفتح",
+   "basic_meaning_urdu": "کھولنا",
+   "basic_meaning_english": "opening",
+   "root_type": "sound",
+   "related_verbs": [
+    "v004",
+    "v026"
+   ],
+   "abwaab_present": [
+    1,
+    8
+   ],
+   "derived_words": [
+    {
+     "arabic": "فَتْح",
+     "meaning_urdu": "فتح، کھولنا",
+     "meaning_english": "opening, victory",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "مِفْتَاح",
+     "meaning_urdu": "کنجی",
+     "meaning_english": "key",
+     "type": "اسم آلہ"
+    },
+    {
+     "arabic": "فَاتِح",
+     "meaning_urdu": "کھولنے والا",
+     "meaning_english": "opener",
+     "type": "اسم فاعل"
+    }
+   ]
+  },
+  {
+   "root": "ف ط ر",
+   "root_letters": [
+    "ف",
+    "ط",
+    "ر"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "پھاڑنا",
+   "basic_meaning_english": "to cleave",
+   "root_type": "sound",
+   "related_verbs": [
+    "v070",
+    "v071"
+   ],
+   "abwaab_present": [
+    1,
+    7
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ق ب ل",
+   "root_letters": [
+    "ق",
+    "ب",
+    "ل"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "قبول کرنا",
+   "basic_meaning_english": "to accept",
+   "root_type": "sound",
+   "related_verbs": [
+    "v061",
+    "v062"
+   ],
+   "abwaab_present": [
+    1,
+    5
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ق ت ل",
+   "root_letters": [
+    "ق",
+    "ت",
+    "ل"
+   ],
+   "basic_meaning_arabic": "القتل",
+   "basic_meaning_urdu": "قتل",
+   "basic_meaning_english": "killing",
+   "root_type": "sound",
+   "related_verbs": [
+    "v049",
+    "v050"
+   ],
+   "abwaab_present": [
+    1,
+    3
+   ],
+   "derived_words": [
+    {
+     "arabic": "قَتْل",
+     "meaning_urdu": "قتل",
+     "meaning_english": "killing",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "قِتَال",
+     "meaning_urdu": "جنگ",
+     "meaning_english": "fighting",
+     "type": "مصدر باب مفاعلة"
+    },
+    {
+     "arabic": "مَقْتُول",
+     "meaning_urdu": "مارا گیا",
+     "meaning_english": "slain",
+     "type": "اسم مفعول"
+    }
+   ]
+  },
+  {
+   "root": "ق ر أ",
+   "root_letters": [
+    "ق",
+    "ر",
+    "أ"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "پڑھنا",
+   "basic_meaning_english": "to read",
+   "root_type": "hamzated",
+   "related_verbs": [
+    "v035"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ق و ل",
+   "root_letters": [
+    "ق",
+    "و",
+    "ل"
+   ],
+   "basic_meaning_arabic": "القول",
+   "basic_meaning_urdu": "کہنا",
+   "basic_meaning_english": "saying",
+   "root_type": "hollow",
+   "related_verbs": [
+    "v010"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": [
+    {
+     "arabic": "قَوْل",
+     "meaning_urdu": "بات، قول",
+     "meaning_english": "a saying",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "قَائِل",
+     "meaning_urdu": "کہنے والا",
+     "meaning_english": "speaker",
+     "type": "اسم فاعل"
+    },
+    {
+     "arabic": "مَقَال",
+     "meaning_urdu": "گفتگو کی جگہ/مضمون",
+     "meaning_english": "discourse",
+     "type": "اسم"
+    }
+   ]
+  },
+  {
+   "root": "ك ت ب",
+   "root_letters": [
+    "ك",
+    "ت",
+    "ب"
+   ],
+   "basic_meaning_arabic": "الكتابة",
+   "basic_meaning_urdu": "لکھنا",
+   "basic_meaning_english": "writing",
+   "root_type": "sound",
+   "related_verbs": [
+    "v001",
+    "v017",
+    "v018",
+    "v019",
+    "v020",
+    "v021"
+   ],
+   "abwaab_present": [
+    1,
+    2,
+    3,
+    7,
+    8,
+    10
+   ],
+   "derived_words": [
+    {
+     "arabic": "كِتَاب",
+     "meaning_urdu": "کتاب",
+     "meaning_english": "book",
+     "type": "اسم"
+    },
+    {
+     "arabic": "مَكْتَبَة",
+     "meaning_urdu": "کتب خانہ",
+     "meaning_english": "library",
+     "type": "اسم مکان"
+    },
+    {
+     "arabic": "كَاتِب",
+     "meaning_urdu": "لکھنے والا",
+     "meaning_english": "writer",
+     "type": "اسم فاعل"
+    },
+    {
+     "arabic": "مَكْتُوب",
+     "meaning_urdu": "لکھا ہوا",
+     "meaning_english": "written",
+     "type": "اسم مفعول"
+    }
+   ]
+  },
+  {
+   "root": "ك ر م",
+   "root_letters": [
+    "ك",
+    "ر",
+    "م"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "سخی ہونا",
+   "basic_meaning_english": "to be generous",
+   "root_type": "sound",
+   "related_verbs": [
+    "v033"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ك س ر",
+   "root_letters": [
+    "ك",
+    "س",
+    "ر"
+   ],
+   "basic_meaning_arabic": "الكسر",
+   "basic_meaning_urdu": "توڑنا",
+   "basic_meaning_english": "breaking",
+   "root_type": "sound",
+   "related_verbs": [
+    "v068",
+    "v069"
+   ],
+   "abwaab_present": [
+    1,
+    7
+   ],
+   "derived_words": [
+    {
+     "arabic": "كَسْر",
+     "meaning_urdu": "توڑنا",
+     "meaning_english": "breaking",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "اِنْكِسَار",
+     "meaning_urdu": "ٹوٹ جانا",
+     "meaning_english": "being broken",
+     "type": "مصدر باب انفعال"
+    },
+    {
+     "arabic": "مَكْسُور",
+     "meaning_urdu": "ٹوٹا ہوا",
+     "meaning_english": "broken",
+     "type": "اسم مفعول"
+    }
+   ]
+  },
+  {
+   "root": "ك و ر",
+   "root_letters": [
+    "ك",
+    "و",
+    "ر"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "لپیٹنا",
+   "basic_meaning_english": "to wrap up",
+   "root_type": "hollow",
+   "related_verbs": [
+    "v056"
+   ],
+   "abwaab_present": [
+    2
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "م د د",
+   "root_letters": [
+    "م",
+    "د",
+    "د"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "پھیلانا",
+   "basic_meaning_english": "to extend",
+   "root_type": "doubled",
+   "related_verbs": [
+    "v044"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ن د و",
+   "root_letters": [
+    "ن",
+    "د",
+    "و"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "پکارنا",
+   "basic_meaning_english": "to call out",
+   "root_type": "defective",
+   "related_verbs": [
+    "v060"
+   ],
+   "abwaab_present": [
+    3
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ن ز ل",
+   "root_letters": [
+    "ن",
+    "ز",
+    "ل"
+   ],
+   "basic_meaning_arabic": "النزول",
+   "basic_meaning_urdu": "اترنا",
+   "basic_meaning_english": "descending",
+   "root_type": "sound",
+   "related_verbs": [
+    "v051",
+    "v052",
+    "v053",
+    "v054",
+    "v055"
+   ],
+   "abwaab_present": [
+    1,
+    2,
+    4,
+    5,
+    10
+   ],
+   "derived_words": [
+    {
+     "arabic": "نُزُول",
+     "meaning_urdu": "اترنا",
+     "meaning_english": "descent",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "تَنْزِيل",
+     "meaning_urdu": "نازل کرنا",
+     "meaning_english": "revelation",
+     "type": "مصدر باب تفعیل"
+    },
+    {
+     "arabic": "إِنْزَال",
+     "meaning_urdu": "اتارنا",
+     "meaning_english": "sending down",
+     "type": "مصدر باب إفعال"
+    },
+    {
+     "arabic": "مَنْزِل",
+     "meaning_urdu": "اترنے کی جگہ، گھر",
+     "meaning_english": "dwelling",
+     "type": "اسم مکان"
+    }
+   ]
+  },
+  {
+   "root": "ن ص ر",
+   "root_letters": [
+    "ن",
+    "ص",
+    "ر"
+   ],
+   "basic_meaning_arabic": "النصر",
+   "basic_meaning_urdu": "مدد",
+   "basic_meaning_english": "help, victory",
+   "root_type": "sound",
+   "related_verbs": [
+    "v002",
+    "v024",
+    "v025"
+   ],
+   "abwaab_present": [
+    1,
+    3,
+    8
+   ],
+   "derived_words": [
+    {
+     "arabic": "نَصْر",
+     "meaning_urdu": "مدد، فتح",
+     "meaning_english": "victory",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "نَاصِر",
+     "meaning_urdu": "مدد کرنے والا",
+     "meaning_english": "helper",
+     "type": "اسم فاعل"
+    },
+    {
+     "arabic": "أَنْصَار",
+     "meaning_urdu": "مددگار لوگ",
+     "meaning_english": "helpers",
+     "type": "جمع"
+    },
+    {
+     "arabic": "مَنْصُور",
+     "meaning_urdu": "جس کی مدد کی گئی",
+     "meaning_english": "the one helped",
+     "type": "اسم مفعول"
+    }
+   ]
+  },
+  {
+   "root": "ن ف س",
+   "root_letters": [
+    "ن",
+    "ف",
+    "س"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "باہم مقابلہ کرنا",
+   "basic_meaning_english": "to compete",
+   "root_type": "sound",
+   "related_verbs": [
+    "v067"
+   ],
+   "abwaab_present": [
+    6
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ن ف ع",
+   "root_letters": [
+    "ن",
+    "ف",
+    "ع"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "فائدہ دینا",
+   "basic_meaning_english": "to benefit",
+   "root_type": "sound",
+   "related_verbs": [
+    "v078",
+    "v079"
+   ],
+   "abwaab_present": [
+    1,
+    8
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "ه د ي",
+   "root_letters": [
+    "ه",
+    "د",
+    "ي"
+   ],
+   "basic_meaning_arabic": "الهداية",
+   "basic_meaning_urdu": "ہدایت",
+   "basic_meaning_english": "guidance",
+   "root_type": "defective",
+   "related_verbs": [
+    "v043"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": [
+    {
+     "arabic": "هُدَى",
+     "meaning_urdu": "ہدایت",
+     "meaning_english": "guidance",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "هِدَايَة",
+     "meaning_urdu": "ہدایت",
+     "meaning_english": "guidance",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "هَادٍ",
+     "meaning_urdu": "ہدایت دینے والا",
+     "meaning_english": "guide",
+     "type": "اسم فاعل"
+    }
+   ]
+  },
+  {
+   "root": "ه ز أ",
+   "root_letters": [
+    "ه",
+    "ز",
+    "أ"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "مذاق اڑانا",
+   "basic_meaning_english": "to mock",
+   "root_type": "hamzated",
+   "related_verbs": [
+    "v082"
+   ],
+   "abwaab_present": [
+    10
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "و ج د",
+   "root_letters": [
+    "و",
+    "ج",
+    "د"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "پانا",
+   "basic_meaning_english": "to find",
+   "root_type": "assimilated",
+   "related_verbs": [
+    "v037"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "و ع د",
+   "root_letters": [
+    "و",
+    "ع",
+    "د"
+   ],
+   "basic_meaning_arabic": "الوعد",
+   "basic_meaning_urdu": "وعدہ",
+   "basic_meaning_english": "promise",
+   "root_type": "assimilated",
+   "related_verbs": [
+    "v013"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": [
+    {
+     "arabic": "وَعْد",
+     "meaning_urdu": "وعدہ",
+     "meaning_english": "promise",
+     "type": "مصدر"
+    },
+    {
+     "arabic": "مَوْعِد",
+     "meaning_urdu": "وعدے کا وقت/جگہ",
+     "meaning_english": "appointed time",
+     "type": "اسم زمان"
+    },
+    {
+     "arabic": "مَوْعُود",
+     "meaning_urdu": "جس کا وعدہ کیا گیا",
+     "meaning_english": "promised",
+     "type": "اسم مفعول"
+    }
+   ]
+  },
+  {
+   "root": "و ف ي",
+   "root_letters": [
+    "و",
+    "ف",
+    "ي"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "پورا کرنا",
+   "basic_meaning_english": "to fulfil",
+   "root_type": "lafeef",
+   "related_verbs": [
+    "v046"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "و ق ف",
+   "root_letters": [
+    "و",
+    "ق",
+    "ف"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "ٹھہرنا",
+   "basic_meaning_english": "to stand",
+   "root_type": "assimilated",
+   "related_verbs": [
+    "v038"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  },
+  {
+   "root": "و ق ي",
+   "root_letters": [
+    "و",
+    "ق",
+    "ي"
+   ],
+   "basic_meaning_arabic": "",
+   "basic_meaning_urdu": "بچانا",
+   "basic_meaning_english": "to protect",
+   "root_type": "lafeef",
+   "related_verbs": [
+    "v047"
+   ],
+   "abwaab_present": [
+    1
+   ],
+   "derived_words": []
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+# Light, high-contrast theme — chosen for older readers and for printing.
+[theme]
+base = "light"
+primaryColor = "#14532d"
+backgroundColor = "#fbfaf6"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#1f2937"
+font = "serif"
+
+[server]
+headless = true
+enableXsrfProtection = true
+maxUploadSize = 5
+
+[browser]
+gatherUsageStats = false
