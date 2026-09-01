@@ -29,8 +29,8 @@ def render_practice_mode(analyzer, lang: str = 'en', translations: dict = None):
     q = st.session_state.current_q
     if q:
         st.markdown(f"""
-        <div style="background: #2d3748; padding: 20px; border-radius: 12px; margin: 15px 0; direction: rtl; text-align: right;">
-            <h3 style="color: #f39c12;">سوال: {q['question']}</h3>
+        <div style="background: #f6f6f2; padding: 20px; border-radius: 12px; margin: 15px 0; direction: rtl; text-align: right;">
+            <h3 style="color: #92400e;">سوال: {q['question']}</h3>
         </div>
         """, unsafe_allow_html=True)
 
@@ -109,7 +109,7 @@ def render_flashcard_mode(analyzer, lang: str = 'en', translations: dict = None)
     # Stats banner
     stats = analyzer.get_sm2_stats()
     st.markdown(f"""
-    <div style='display: flex; justify-content: space-around; background: #e2e8f0; padding: 15px; border-radius: 10px; margin-bottom: 20px; direction: rtl; color: #1a202c;'>
+    <div style='display: flex; justify-content: space-around; background: #1f2937; padding: 15px; border-radius: 10px; margin-bottom: 20px; direction: rtl; color: #ffffff;'>
         <div><b>کل کارڈز:</b> {stats['total_cards']}</div>
         <div><b>آج کے لیے باقی:</b> {stats['due_today']}</div>
         <div><b>اوسط آسانی (EF):</b> {stats['average_ef']}</div>
@@ -141,8 +141,8 @@ def render_flashcard_mode(analyzer, lang: str = 'en', translations: dict = None)
     card_content = front_text if not st.session_state.flashcard_flipped else back_text
 
     st.markdown(f"""
-        <div class="flashcard" style="background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%); border-radius: 15px; padding: 40px; text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center; margin: 20px 0;">
-            <div class="flashcard-text" style="font-size: 2.5em; color: white; direction: rtl;">
+        <div class="flashcard" style="background: linear-gradient(135deg, #1a365d 0%, #14532d 100%); border-radius: 15px; padding: 40px; text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center; margin: 20px 0;">
+            <div class="flashcard-text" style="font-size: 2.5em; color: #1f2937; direction: rtl;">
                 {card_content}
             </div>
         </div>
