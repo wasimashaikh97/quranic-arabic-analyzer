@@ -324,11 +324,25 @@ def past_forms(past_3ms: str, short_stem: str = None) -> list:
 # Present paradigm (indicative مرفوع and jussive مجزوم)
 # ---------------------------------------------------------------------------
 def present_forms(present_3ms: str, mood: str = 'indicative') -> list:
-    """Return the 14 مضارع forms; ``mood`` is 'indicative' or 'jussive'."""
+    """Return the 14 مضارع forms.
+
+    ``mood`` is one of:
+
+    ``indicative`` (مرفوع)
+        the plain form — يَكْتُبُ، يَكْتُبَانِ، يَكْتُبُونَ
+    ``subjunctive`` (منصوب)
+        after أَنْ / لَنْ — يَكْتُبَ، يَكْتُبَا، يَكْتُبُوا
+    ``jussive`` (مجزوم)
+        after لَمْ / لَا الناهية, and the base of the امر — يَكْتُبْ
+
+    منصوب and مجزوم differ only in the singular and first-person endings
+    (ـَ against ـْ); both drop the ن of the dual and plural.
+    """
     info = analyse_present(present_3ms)
     kind = info['kind']
     pv = info['prefix_vowel']
-    jussive = (mood == 'jussive')
+    jussive = mood in ('jussive', 'subjunctive')
+    subjunctive = (mood == 'subjunctive')
     out = []
 
     for i in range(14):
@@ -337,7 +351,7 @@ def present_forms(present_3ms: str, mood: str = 'indicative') -> list:
         if kind == 'regular':
             stem = info['stem']
             if i in _SINGULAR_IDX:
-                body = stem + (SUKUN if jussive else DAMMA)
+                body = stem + _short_ending(jussive, subjunctive)
             elif i in _DUAL_IDX:
                 body = stem + FATHA + ALEF + ('' if jussive else NOON + KASRA)
             elif i in _MASC_PLURAL_IDX:
@@ -350,7 +364,12 @@ def present_forms(present_3ms: str, mood: str = 'indicative') -> list:
         elif kind == 'hollow':
             stem, short = info['stem'], info['short']
             if i in _SINGULAR_IDX:
-                body = (short + SUKUN) if jussive else (stem + DAMMA)
+                if subjunctive:
+                    body = stem + FATHA        # يَقُولَ — no shortening
+                elif jussive:
+                    body = short + SUKUN       # يَقُلْ  — shortened
+                else:
+                    body = stem + DAMMA        # يَقُولُ
             elif i in _DUAL_IDX:
                 body = stem + FATHA + ALEF + ('' if jussive else NOON + KASRA)
             elif i in _MASC_PLURAL_IDX:
@@ -363,6 +382,7 @@ def present_forms(present_3ms: str, mood: str = 'indicative') -> list:
         elif kind == 'doubled':
             stem, expanded = info['stem'], info['expanded']
             if i in _SINGULAR_IDX:
+                # a doubled verb takes فتحہ in both منصوب and مجزوم
                 body = stem + (FATHA if jussive else DAMMA)
             elif i in _DUAL_IDX:
                 body = stem + FATHA + ALEF + ('' if jussive else NOON + KASRA)
@@ -377,7 +397,8 @@ def present_forms(present_3ms: str, mood: str = 'indicative') -> list:
             base = info['base']                    # ...دْعُ
             base_k = _reset_final_vowel(info['base_units'], KASRA)
             if i in _SINGULAR_IDX:
-                body = base if jussive else base + WAW
+                body = ((base + WAW + FATHA) if subjunctive
+                        else base if jussive else base + WAW)
             elif i in _DUAL_IDX:
                 body = base + WAW + FATHA + ALEF + ('' if jussive else NOON + KASRA)
             elif i in _MASC_PLURAL_IDX:
@@ -391,7 +412,8 @@ def present_forms(present_3ms: str, mood: str = 'indicative') -> list:
             base = info['base']                    # ...رْمِ
             base_d = _reset_final_vowel(info['base_units'], DAMMA)
             if i in _SINGULAR_IDX:
-                body = base if jussive else base + YA
+                body = ((base + YA + FATHA) if subjunctive
+                        else base if jussive else base + YA)
             elif i in _DUAL_IDX:
                 body = base + YA + FATHA + ALEF + ('' if jussive else NOON + KASRA)
             elif i in _MASC_PLURAL_IDX:
@@ -404,7 +426,12 @@ def present_forms(present_3ms: str, mood: str = 'indicative') -> list:
         elif kind == 'def_a':                      # يَسْعَى / يُدْعَى
             base = info['base']                    # ...سْعَ
             if i in _SINGULAR_IDX:
-                body = base if jussive else base + ALEF_MAQSURA
+                if subjunctive:
+                    body = base + ALEF_MAQSURA     # يَسْعَى — unchanged
+                elif jussive:
+                    body = base                    # يَسْعَ
+                else:
+                    body = base + ALEF_MAQSURA
             elif i in _DUAL_IDX:
                 body = base + YA + FATHA + ALEF + ('' if jussive else NOON + KASRA)
             elif i in _MASC_PLURAL_IDX:
@@ -419,6 +446,13 @@ def present_forms(present_3ms: str, mood: str = 'indicative') -> list:
         out.append(tidy(prefix + body))
 
     return out
+
+
+def _short_ending(jussive: bool, subjunctive: bool) -> str:
+    """The ending of a singular مضارع: ـُ مرفوع، ـَ منصوب، ـْ مجزوم."""
+    if subjunctive:
+        return FATHA
+    return SUKUN if jussive else DAMMA
 
 
 def _reset_final_vowel(base_units, vowel: str) -> str:

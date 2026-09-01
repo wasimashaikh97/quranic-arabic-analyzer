@@ -323,6 +323,68 @@ def inject_css(font_scale: float = 1.0, lang: str = 'ur'):
     td.qa-na {{ color: {C['ink_faint']}; font-style: normal; }}
     .qa-num {{ color: {C['ink_faint']}; font-size: .9em; }}
 
+    /* ---------- the book's گردان grid ---------- */
+    table.qa-grid-table td {{ padding: 10px 8px; }}
+    table.qa-grid-table td.qa-ar {{
+        font-size: {1.85 * font_scale:.2f}em; line-height: 1.7;
+    }}
+    .qa-cell-pron {{
+        font-size: {0.52 * font_scale:.2f}em; color: {C['ink_faint']};
+        font-weight: 400; margin-top: 2px; line-height: 1.5;
+    }}
+    td.qa-rowlab {{
+        background: {C['brand_soft']}; color: {C['brand']};
+        font-weight: 700; font-size: {1.05 * font_scale:.2f}em;
+        white-space: nowrap; text-align: right; padding: 10px 12px;
+    }}
+    .qa-rowlab-en {{
+        font-size: {0.72 * font_scale:.2f}em; color: {C['ink_faint']};
+        font-weight: 400; direction: ltr; text-align: right;
+    }}
+    th.qa-rowlab {{ background: {C['brand']}; }}
+
+    /* ---------- numbered sections of the verb page ---------- */
+    .qa-section {{
+        display: flex; align-items: center; gap: 12px;
+        background: {C['brand']}; color: #fef3c7;
+        border-radius: 14px; padding: 14px 20px;
+        margin: 26px 0 14px 0; direction: rtl; text-align: right;
+        font-size: {1.5 * font_scale:.2f}em; font-weight: 700;
+    }}
+    .qa-section-num {{
+        background: #fef3c7; color: {C['brand']};
+        border-radius: 50%; min-width: 1.9em; height: 1.9em;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: .82em;
+    }}
+    .qa-tense-head {{
+        background: {C['brand_soft']}; color: {C['brand']};
+        border-right: 8px solid {C['brand']}; border-radius: 10px;
+        padding: 9px 16px; margin: 14px 0 8px 0;
+        direction: rtl; text-align: right;
+        font-size: {1.25 * font_scale:.2f}em; font-weight: 700;
+    }}
+
+    /* ---------- Quranic ayaat ---------- */
+    .qa-ayah-ref {{
+        color: {C['brand']}; font-size: {1.0 * font_scale:.2f}em;
+        margin-bottom: 10px; padding-bottom: 8px;
+        border-bottom: 2px solid {C['brand_soft']};
+    }}
+    .qa-ayah {{
+        font-family: {ARABIC_STACK}; font-size: {2.0 * font_scale:.2f}em;
+        color: {C['accent']}; line-height: 2.35; text-align: right;
+        margin-bottom: 12px;
+    }}
+    .qa-ayah-ur {{
+        font-size: {1.15 * font_scale:.2f}em; color: {C['ink']};
+        line-height: 2.0; text-align: right;
+    }}
+    .qa-ayah-en {{
+        font-size: {1.0 * font_scale:.2f}em; color: {C['ink_soft']};
+        direction: ltr; text-align: left; margin-top: 8px; line-height: 1.7;
+    }}
+
     /* ---------- notices ---------- */
     .qa-note {{
         background: {C['warn_bg']}; border: 2px solid {C['warn_edge']};
@@ -514,6 +576,84 @@ def gardaan_table(rows, lang: str = 'ur', show_meanings: bool = True,
         '<div class="qa-table-wrap"><table class="qa-table">'
         '<thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>'
         % (''.join('<th>%s</th>' % esc(h) for h in heads), ''.join(body)))
+
+
+#: the reference book's grid — rows are person/gender, columns are number.
+#: Values are indexes into the 14-form گردان.
+_GRID_ROWS_14 = [
+    ('غائب مذکر', '3rd m.', 0, 1, 2),
+    ('غائب مؤنث', '3rd f.', 3, 4, 5),
+    ('حاضر مذکر', '2nd m.', 6, 7, 8),
+    ('حاضر مؤنث', '2nd f.', 9, 10, 11),
+    ('متکلم', '1st', 12, None, 13),
+]
+#: امر and نہی exist only for the second person
+_GRID_ROWS_6 = [
+    ('حاضر مذکر', '2nd m.', 0, 1, 2),
+    ('حاضر مؤنث', '2nd f.', 3, 4, 5),
+]
+
+
+def gardaan_grid(rows, lang: str = 'ur', na_text: str = None) -> str:
+    """The گردان laid out as in the reference book: واحد | مثنی | جمع.
+
+    Five rows instead of fourteen, so all four tenses fit on one screen — and
+    it is the shape a student already knows from the printed book.
+    """
+    if not rows:
+        return (f'<div class="qa-note">{esc(na_text or t("not_applicable", lang))}'
+                f'</div>')
+
+    layout = _GRID_ROWS_14 if len(rows) >= 14 else _GRID_ROWS_6
+
+    def cell(index):
+        if index is None or index >= len(rows):
+            return '<td class="qa-na">×</td>'
+        row = rows[index]
+        return ('<td class="qa-ar" title="%s">%s<div class="qa-cell-pron">%s</div></td>'
+                % (esc(row.get('sigha_urdu', '')), esc(row.get('arabic', '')),
+                   esc(row.get('pronoun_arabic', ''))))
+
+    head = ('<tr><th class="qa-rowlab"></th>'
+            f'<th>{esc("واحد")}</th><th>{esc("مثنی")}</th><th>{esc("جمع")}</th></tr>')
+
+    body = []
+    for label_ur, label_en, single, dual, plural in layout:
+        label = ('<td class="qa-rowlab">%s<div class="qa-rowlab-en">%s</div></td>'
+                 % (esc(label_ur), esc(label_en)))
+        if dual is None:
+            # the first person has no dual: the book merges it into the plural
+            cells = (cell(single)
+                     + '<td class="qa-ar" colspan="2">%s<div class="qa-cell-pron">%s</div></td>'
+                     % (esc(rows[plural].get('arabic', '')) if plural < len(rows) else '×',
+                        esc(rows[plural].get('pronoun_arabic', '')) if plural < len(rows) else ''))
+        else:
+            cells = cell(single) + cell(dual) + cell(plural)
+        body.append('<tr>%s%s</tr>' % (label, cells))
+
+    return ('<div class="qa-table-wrap"><table class="qa-table qa-grid-table" dir="rtl">'
+            '<thead>%s</thead><tbody>%s</tbody></table></div>'
+            % (head, ''.join(body)))
+
+
+def gardaan_meaning_list(rows, lang: str = 'ur') -> str:
+    """The Urdu/English gloss of each صیغہ, as the book lists them."""
+    if not rows:
+        return ''
+    items = []
+    for i, row in enumerate(rows, start=1):
+        items.append(
+            '<tr><td class="qa-num">%d</td>'
+            '<td class="qa-ar">%s</td>'
+            '<td class="qa-ur">%s</td>'
+            '<td class="qa-en">%s</td></tr>'
+            % (i, esc(row.get('arabic')), esc(row.get('meaning_urdu')),
+               esc(row.get('meaning_english'))))
+    return ('<div class="qa-table-wrap"><table class="qa-table" dir="rtl">'
+            '<thead><tr><th>#</th><th>%s</th><th>%s</th><th>%s</th></tr></thead>'
+            '<tbody>%s</tbody></table></div>'
+            % (esc(t('th_arabic', lang)), esc(t('th_urdu', lang)),
+               esc(t('th_english', lang)), ''.join(items)))
 
 
 def simple_table(headers, rows, lang: str = 'ur', cell_classes=None) -> str:

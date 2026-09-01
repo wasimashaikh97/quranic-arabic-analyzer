@@ -22,3 +22,6 @@ _run.log
 .idea/
 .DS_Store
 Thumbs.db
+
+# Quran corpus used only at build time by data/build_quran_index.py
+data/quran_cache/

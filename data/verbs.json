@@ -4249,11 +4249,11 @@
   {
    "id": "v060",
    "arabic": "نَادَى",
-   "root": "ن د و",
+   "root": "ن د ي",
    "root_letters": [
     "ن",
     "د",
-    "و"
+    "ي"
    ],
    "baab": 3,
    "form": 3,
@@ -4774,16 +4774,16 @@
    "wazn_present_passive": "يُتَفَاعَلُ",
    "past_3ms": "تَنَافَسَ",
    "present_3ms": "يَتَنَافَسُ",
-   "past_passive_3ms": null,
-   "present_passive_3ms": null,
+   "past_passive_3ms": "تُنُوفِسَ",
+   "present_passive_3ms": "يُتَنَافَسُ",
    "past_short_stem": null,
    "past_passive_short_stem": null,
    "imperative_forms": null,
-   "has_passive": false,
-   "unavailable_note": "یہ فعل لازم ہے، اس لیے اس کا مجہول مستعمل نہیں۔",
+   "has_passive": true,
+   "unavailable_note": null,
    "verb_type": "sound",
-   "transitivity": "لازم",
-   "is_transitive": false,
+   "transitivity": "متعدی",
+   "is_transitive": true,
    "meaning_urdu": "باہم مقابلہ کرنا",
    "meaning_english": "to compete",
    "ur_stem": "باہم مقابلہ کر",
@@ -4794,7 +4794,7 @@
    "masdar": "تَنَافُس",
    "masdar_pattern": "تَفَاعُل",
    "ism_fail": "مُتَنَافِس",
-   "ism_mafool": null,
+   "ism_mafool": "مُتَنَافَس",
    "derived_nouns": {
     "masdar": {
      "arabic": "تَنَافُس",
@@ -4811,6 +4811,14 @@
      "label_en": "Active participle (Ism Fa'il)",
      "meaning_urdu": "باہم مقابلہ کرنے والا",
      "meaning_english": "the one who competes"
+    },
+    "ism_mafool": {
+     "arabic": "مُتَنَافَس",
+     "pattern": "مُتَفَاعَل",
+     "label_ur": "اسم مفعول",
+     "label_en": "Passive participle (Ism Maf'ool)",
+     "meaning_urdu": "باہم مقابلہ کیا ہوا",
+     "meaning_english": "competed"
     }
    }
   },
@@ -5318,16 +5326,16 @@
    "wazn_present_passive": "يُفْتَعَلُ",
    "past_3ms": "اِخْتَلَفَ",
    "present_3ms": "يَخْتَلِفُ",
-   "past_passive_3ms": null,
-   "present_passive_3ms": null,
+   "past_passive_3ms": "اُخْتُلِفَ",
+   "present_passive_3ms": "يُخْتَلَفُ",
    "past_short_stem": null,
    "past_passive_short_stem": null,
    "imperative_forms": null,
-   "has_passive": false,
-   "unavailable_note": "یہ فعل لازم ہے، اس لیے اس کا مجہول مستعمل نہیں۔",
+   "has_passive": true,
+   "unavailable_note": null,
    "verb_type": "sound",
-   "transitivity": "لازم",
-   "is_transitive": false,
+   "transitivity": "متعدی",
+   "is_transitive": true,
    "meaning_urdu": "اختلاف کرنا",
    "meaning_english": "to differ",
    "ur_stem": "اختلاف کر",
@@ -5338,7 +5346,7 @@
    "masdar": "اِخْتِلَاف",
    "masdar_pattern": "اِفْتِعَال",
    "ism_fail": "مُخْتَلِف",
-   "ism_mafool": null,
+   "ism_mafool": "مُخْتَلَف",
    "derived_nouns": {
     "masdar": {
      "arabic": "اِخْتِلَاف",
@@ -5355,6 +5363,14 @@
      "label_en": "Active participle (Ism Fa'il)",
      "meaning_urdu": "اختلاف کرنے والا",
      "meaning_english": "the one who differs"
+    },
+    "ism_mafool": {
+     "arabic": "مُخْتَلَف",
+     "pattern": "مُفْتَعَل",
+     "label_ur": "اسم مفعول",
+     "label_en": "Passive participle (Ism Maf'ool)",
+     "meaning_urdu": "اختلاف کیا ہوا",
+     "meaning_english": "differed"
     }
    }
   },
@@ -5590,16 +5606,16 @@
    "wazn_present_passive": "يُفْتَعَلُ",
    "past_3ms": "اِنْتَفَعَ",
    "present_3ms": "يَنْتَفِعُ",
-   "past_passive_3ms": null,
-   "present_passive_3ms": null,
+   "past_passive_3ms": "اُنْتُفِعَ",
+   "present_passive_3ms": "يُنْتَفَعُ",
    "past_short_stem": null,
    "past_passive_short_stem": null,
    "imperative_forms": null,
-   "has_passive": false,
-   "unavailable_note": "یہ فعل حرفِ جر کے ساتھ متعدی ہوتا ہے، اس لیے بلاواسطہ مجہول مستعمل نہیں۔",
+   "has_passive": true,
+   "unavailable_note": null,
    "verb_type": "sound",
-   "transitivity": "لازم",
-   "is_transitive": false,
+   "transitivity": "متعدی",
+   "is_transitive": true,
    "meaning_urdu": "فائدہ اٹھانا",
    "meaning_english": "to derive benefit",
    "ur_stem": "فائدہ اٹھا",
@@ -5610,7 +5626,7 @@
    "masdar": "اِنْتِفَاع",
    "masdar_pattern": "اِفْتِعَال",
    "ism_fail": "مُنْتَفِع",
-   "ism_mafool": null,
+   "ism_mafool": "مُنْتَفَع",
    "derived_nouns": {
     "masdar": {
      "arabic": "اِنْتِفَاع",
@@ -5627,6 +5643,14 @@
      "label_en": "Active participle (Ism Fa'il)",
      "meaning_urdu": "فائدہ اٹھانے والا",
      "meaning_english": "the one who derive benefits"
+    },
+    "ism_mafool": {
+     "arabic": "مُنْتَفَع",
+     "pattern": "مُفْتَعَل",
+     "label_ur": "اسم مفعول",
+     "label_en": "Passive participle (Ism Maf'ool)",
+     "meaning_urdu": "فائدہ اٹھایا ہوا",
+     "meaning_english": "benefited"
     }
    }
   },
@@ -5806,16 +5830,16 @@
    "wazn_present_passive": "يُسْتَفْعَلُ",
    "past_3ms": "اِسْتَهْزَأَ",
    "present_3ms": "يَسْتَهْزِئُ",
-   "past_passive_3ms": null,
-   "present_passive_3ms": null,
+   "past_passive_3ms": "اُسْتُهْزِئَ",
+   "present_passive_3ms": "يُسْتَهْزَأُ",
    "past_short_stem": null,
    "past_passive_short_stem": null,
    "imperative_forms": null,
-   "has_passive": false,
-   "unavailable_note": "یہ فعل حرفِ جر کے ساتھ متعدی ہوتا ہے، اس لیے بلاواسطہ مجہول مستعمل نہیں۔",
+   "has_passive": true,
+   "unavailable_note": null,
    "verb_type": "hamzated",
-   "transitivity": "لازم",
-   "is_transitive": false,
+   "transitivity": "متعدی",
+   "is_transitive": true,
    "meaning_urdu": "مذاق اڑانا",
    "meaning_english": "to mock",
    "ur_stem": "مذاق اڑا",
@@ -5826,7 +5850,7 @@
    "masdar": "اِسْتِهْزَاء",
    "masdar_pattern": "اِسْتِفْعَال",
    "ism_fail": "مُسْتَهْزِئ",
-   "ism_mafool": null,
+   "ism_mafool": "مُسْتَهْزَأ",
    "derived_nouns": {
     "masdar": {
      "arabic": "اِسْتِهْزَاء",
@@ -5843,6 +5867,14 @@
      "label_en": "Active participle (Ism Fa'il)",
      "meaning_urdu": "مذاق اڑانے والا",
      "meaning_english": "the one who mocks"
+    },
+    "ism_mafool": {
+     "arabic": "مُسْتَهْزَأ",
+     "pattern": "مُسْتَفْعَل",
+     "label_ur": "اسم مفعول",
+     "label_en": "Passive participle (Ism Maf'ool)",
+     "meaning_urdu": "مذاق اڑایا ہوا",
+     "meaning_english": "mocked"
     }
    }
   },

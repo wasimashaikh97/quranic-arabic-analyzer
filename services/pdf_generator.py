@@ -316,60 +316,80 @@ class PDFGenerator:
         ('present_passive', 'مضارع مجہول'),
     ]
 
+    #: the reference book's grid: rows are person/gender, columns are number
+    GRID_ROWS = [
+        ('غائب مذکر', '3rd m.', 0, 1, 2),
+        ('غائب مؤنث', '3rd f.', 3, 4, 5),
+        ('حاضر مذکر', '2nd m.', 6, 7, 8),
+        ('حاضر مؤنث', '2nd f.', 9, 10, 11),
+        ('متکلم', '1st', 12, None, 13),
+    ]
+
     def _four_gardaan_block(self, conjugations: dict) -> Table:
-        """One table: صیغہ column + four tense columns × 14 rows."""
-        from core.conjugation import PRONOUN_META
+        """The four gardaans, each as the book's واحد | مثنی | جمع grid.
 
-        # RTL: the صیغہ column sits on the right, tenses run leftwards
-        tenses_rtl = list(reversed(self.FOUR))
+        Five rows instead of fourteen, so the four tenses sit two-by-two and
+        the Arabic can be printed much larger.
+        """
+        blocks = [[self._one_grid(conjugations, self.FOUR[1]),
+                   self._one_grid(conjugations, self.FOUR[0])],
+                  [self._one_grid(conjugations, self.FOUR[3]),
+                   self._one_grid(conjugations, self.FOUR[2])]]
+        table = Table(blocks, colWidths=[139 * mm, 139 * mm])
+        table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 1),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        return table
 
-        header = []
-        for key, title in tenses_rtl:
-            header.append(Paragraph(reshape(title), self.styles['tense_head']))
-        header.append(Paragraph(reshape('ضمیر'), self.styles['tense_head']))
-        header.append(Paragraph('#', self.styles['tense_head']))
+    def _one_grid(self, conjugations: dict, spec) -> Table:
+        key, title = spec
+        rows = conjugations.get(key) or []
 
-        data = [header]
-        for idx in range(14):
-            meta = PRONOUN_META[idx]
-            row = []
-            for key, _title in tenses_rtl:
-                rows = conjugations.get(key) or []
-                if idx < len(rows):
-                    text, style = rows[idx]['arabic'], 'arabic_cell'
-                elif not rows and idx == 0:
-                    # say it once, in the first row, rather than 14 times
-                    text, style = NA_UR, 'na_cell'
-                else:
-                    text, style = '—', 'na_cell'
-                row.append(Paragraph(reshape(text), self.styles[style]))
-            row.append(Paragraph(reshape(meta['pronoun_ar']),
-                                 self.styles['pronoun_cell']))
-            # a plain Latin digit in its own column — no bidi ambiguity
-            row.append(Paragraph(str(idx + 1), self.styles['num_cell']))
-            data.append(row)
+        # Column order must match the data rows below, which are built
+        # plural, dual, singular, label — i.e. right-to-left as the book prints
+        # it: the row label on the right, جمع furthest left.
+        data = [[Paragraph(reshape('جمع'), self.styles['tense_head']),
+                 Paragraph(reshape('مثنی'), self.styles['tense_head']),
+                 Paragraph(reshape('واحد'), self.styles['tense_head']),
+                 Paragraph(reshape(title), self.styles['tense_head'])]]
 
-        table = Table(data, colWidths=[60 * mm] * 4 + [30 * mm, 8 * mm],
-                      repeatRows=1)
+        def cell(index):
+            if index is None or index >= len(rows):
+                return Paragraph('×', self.styles['na_cell'])
+            return Paragraph(reshape(rows[index]['arabic']),
+                             self.styles['arabic_cell'])
+
+        for label_ur, label_en, single, dual, plural in self.GRID_ROWS:
+            label = Paragraph(reshape('%s' % label_ur), self.styles['pronoun_cell'])
+            if dual is None:
+                merged = cell(plural)
+                data.append([merged, merged, cell(single), label])
+            else:
+                data.append([cell(plural), cell(dual), cell(single), label])
+
+        widths = [33 * mm, 33 * mm, 33 * mm, 38 * mm]
+        table = Table(data, colWidths=widths)
         style = [
             ('BACKGROUND', (0, 0), (-1, 0), BRAND),
-            ('BOX', (0, 0), (-1, -1), 1.0, BRAND),
-            ('INNERGRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#cbd5e1')),
+            ('BOX', (0, 0), (-1, -1), 0.9, BRAND),
+            ('INNERGRID', (0, 0), (-1, -1), 0.35, colors.HexColor('#cbd5e1')),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 1), (-1, -1), 2),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 2),
-            ('LEFTPADDING', (0, 0), (-1, -1), 2),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-            ('BACKGROUND', (-2, 1), (-1, -1), BRAND_LIGHT),
+            ('TOPPADDING', (0, 1), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
+            ('BACKGROUND', (-1, 1), (-1, -1), BRAND_LIGHT),
         ]
-        for r in range(1, 15):
-            if r % 2 == 0:
-                style.append(('BACKGROUND', (0, r), (-3, r), ROW_ALT))
-        # thicker rules where the person changes (after صیغہ 6 and 12)
-        for r in (6, 12):
-            style.append(('LINEBELOW', (0, r), (-1, r), 0.9, BRAND))
+        if not rows:
+            style.append(('BACKGROUND', (0, 1), (-2, -1),
+                          colors.HexColor('#fafafa')))
+        # the first person has no dual, so the book merges those two cells
+        style.append(('SPAN', (0, 5), (1, 5)))
         table.setStyle(TableStyle(style))
         return table
+
 
     def _bottom_strip(self, verb: dict, conjugations: dict) -> Table:
         imperative = conjugations.get('imperative') or []

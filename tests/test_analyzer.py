@@ -322,9 +322,40 @@ class TestImperativeProhibition(TestBase):
 class TestNoInvention(TestBase):
     """Accuracy policy: nothing is fabricated where nothing is attested."""
 
+    #: verbs with no attested passive.  تَنَافَسَ، اِخْتَلَفَ، اِنْتَفَعَ and
+    #: اِسْتَهْزَأَ are deliberately absent from this list: the reference book
+    #: gives their passives, and يُسْتَهْزَأُ is attested at Q 4:140.
     NO_PASSIVE = ['خَرَجَ', 'كَرُمَ', 'نَزَلَ', 'اِنْكَسَرَ', 'اِنْفَطَرَ',
-                  'اِجْتَمَعَ', 'اِخْتَلَفَ', 'اِرْتَفَعَ', 'اِنْتَفَعَ',
-                  'تَعَاوَنَ', 'تَنَافَسَ', 'اِسْتَهْزَأَ', 'اِنْتَصَرَ']
+                  'اِجْتَمَعَ', 'اِرْتَفَعَ', 'تَعَاوَنَ', 'اِنْتَصَرَ',
+                  'تَنَزَّلَ', 'تَدَاخَلَ', 'أَضْرَبَ', 'اِنْكَتَبَ']
+
+    #: the passives the reference book supplies, which the app must carry
+    BOOK_PASSIVES = {
+        'تَنَافَسَ': ('تُنُوفِسَ', 'يُتَنَافَسُ'),
+        'اِخْتَلَفَ': ('اُخْتُلِفَ', 'يُخْتَلَفُ'),
+        'اِنْتَفَعَ': ('اُنْتُفِعَ', 'يُنْتَفَعُ'),
+        'اِسْتَهْزَأَ': ('اُسْتُهْزِئَ', 'يُسْتَهْزَأُ'),
+        'أَنْزَلَ': ('أُنْزِلَ', 'يُنْزَلُ'),
+        'كَوَّرَ': ('كُوِّرَ', 'يُكَوَّرُ'),
+        'نَادَى': ('نُودِيَ', 'يُنَادَى'),
+        'حَاسَبَ': ('حُوسِبَ', 'يُحَاسَبُ'),
+        'تَقَبَّلَ': ('تُقُبِّلَ', 'يُتَقَبَّلُ'),
+        'تَخَطَّفَ': ('تُخُطِّفَ', 'يُتَخَطَّفُ'),
+    }
+
+    def test_reference_book_passives_are_present(self):
+        for verb_ar, (past, present) in self.BOOK_PASSIVES.items():
+            v = self.analyzer.analyze_verb(verb_ar)['verb']
+            self.assertEqual(v['past_passive_3ms'], past, verb_ar)
+            self.assertEqual(v['present_passive_3ms'], present, verb_ar)
+            conj = self.analyzer.conjugate(v)
+            self.assertEqual(len(conj['past_passive']), 14, verb_ar)
+            self.assertEqual(len(conj['present_passive']), 14, verb_ar)
+
+    def test_reference_book_roots(self):
+        """نَادَى belongs to ن د ي in the book, not ن د و."""
+        self.assertEqual(
+            self.analyzer.analyze_verb('نَادَى')['verb']['root'], 'ن د ي')
 
     def test_intransitive_verbs_have_no_passive(self):
         for verb_ar in self.NO_PASSIVE:
@@ -722,6 +753,154 @@ class TestDataModel(TestBase):
 
 
 # ===========================================================================
+class TestQuranicIndex(TestBase):
+    """The ayaat are found in the verified text, never written from memory."""
+
+    #: ayaat that can be checked independently
+    KNOWN = {
+        'كَوَّرَ': (81, 1),        # إِذَا ٱلشَّمْسُ كُوِّرَتْ
+        'اِنْفَطَرَ': (82, 1),      # إِذَا ٱلسَّمَآءُ ٱنفَطَرَتْ
+        'هَدَى': (1, 6),          # ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ
+        'عَلَّمَ': (55, 2),         # عَلَّمَ ٱلْقُرْءَانَ
+        'اِسْتَهْزَأَ': (4, 140),   # وَيُسْتَهْزَأُ بِهَا
+    }
+
+    def test_known_ayaat_are_found(self):
+        for verb_ar, (surah, ayah) in self.KNOWN.items():
+            verb = self.analyzer.analyze_verb(verb_ar)['verb']
+            refs = {(o['surah_number'], o['ayah_number'])
+                    for o in self.analyzer.get_quranic_usage(verb['id'])}
+            self.assertIn((surah, ayah), refs,
+                          '%s should cite %d:%d — got %s'
+                          % (verb_ar, surah, ayah, sorted(refs)))
+
+    def test_coverage_is_substantial(self):
+        covered = sum(1 for v in self.analyzer.verbs
+                      if self.analyzer.get_quranic_usage(v['id']))
+        self.assertGreaterEqual(covered, 60,
+                                'only %d verbs have ayaat' % covered)
+
+    def test_every_occurrence_is_complete(self):
+        required = ('verb_id', 'surah_number', 'surah_name_arabic',
+                    'ayah_number', 'arabic_text', 'highlighted_word',
+                    'translation_urdu', 'translation_english', 'sigha_urdu')
+        for entry in self.analyzer.quranic:
+            for field in required:
+                self.assertTrue(entry.get(field) not in (None, ''),
+                                'missing %s in %s' % (field, entry.get('verb_id')))
+
+    def test_highlighted_word_is_in_its_ayah(self):
+        """The cited word must really occur in the ayah quoted."""
+        for entry in self.analyzer.quranic:
+            self.assertIn(entry['highlighted_word'], entry['arabic_text'],
+                          '%s not in %d:%d' % (entry['highlighted_word'],
+                                               entry['surah_number'],
+                                               entry['ayah_number']))
+
+    def test_surah_and_ayah_numbers_are_sane(self):
+        for entry in self.analyzer.quranic:
+            self.assertTrue(1 <= entry['surah_number'] <= 114, entry)
+            self.assertGreaterEqual(entry['ayah_number'], 1)
+
+    def test_occurrences_point_at_real_verbs(self):
+        for entry in self.analyzer.quranic:
+            self.assertTrue(self.analyzer.get_verb_by_id(entry['verb_id']),
+                            'orphan: %s' % entry['verb_id'])
+
+    def test_no_verb_shows_a_foreign_root(self):
+        """A cited word must share the verb's root letters."""
+        from core.arabic_utils import strip_marks, normalise_letters
+        for entry in self.analyzer.quranic:
+            verb = self.analyzer.get_verb_by_id(entry['verb_id'])
+            word = normalise_letters(strip_marks(entry['highlighted_word']))
+            strong = [normalise_letters(r) for r in verb['root_letters']
+                      if r not in 'اوىيءأإآؤئ']
+            for radical in strong:
+                self.assertIn(radical, word,
+                              '%s lacks %s of root %s'
+                              % (entry['highlighted_word'], radical,
+                                 verb['root']))
+
+
+class TestMoods(TestBase):
+    """مضارع منصوب and مجزوم — the endings Quranic Arabic uses constantly."""
+
+    CASES = {
+        #  مضارع        منصوب        مجزوم
+        'يَكْتُبُ': ('يَكْتُبَ', 'يَكْتُبْ'),
+        'يَقُولُ': ('يَقُولَ', 'يَقُلْ'),
+        'يَصُومُ': ('يَصُومَ', 'يَصُمْ'),
+        'يَخَافُ': ('يَخَافَ', 'يَخَفْ'),
+        'يَدْعُو': ('يَدْعُوَ', 'يَدْعُ'),
+        'يَرْمِي': ('يَرْمِيَ', 'يَرْمِ'),
+        'يَسْعَى': ('يَسْعَى', 'يَسْعَ'),
+    }
+
+    def test_singular_endings(self):
+        for present, (subjunctive, jussive) in self.CASES.items():
+            self.assertEqual(
+                canonical_marks(present_forms(present, 'subjunctive')[0]),
+                canonical_marks(subjunctive), present)
+            self.assertEqual(
+                canonical_marks(present_forms(present, 'jussive')[0]),
+                canonical_marks(jussive), present)
+
+    def test_dual_and_plural_drop_the_noon(self):
+        for mood in ('subjunctive', 'jussive'):
+            forms = present_forms('يَكْتُبُ', mood)
+            self.assertEqual(canonical_marks(forms[1]),
+                             canonical_marks('يَكْتُبَا'))
+            self.assertEqual(canonical_marks(forms[2]),
+                             canonical_marks('يَكْتُبُوا'))
+
+    def test_feminine_plural_is_invariable(self):
+        indicative = present_forms('يَكْتُبُ')
+        for mood in ('subjunctive', 'jussive'):
+            forms = present_forms('يَكْتُبُ', mood)
+            self.assertEqual(forms[5], indicative[5])
+            self.assertEqual(forms[11], indicative[11])
+
+
+class TestBookGrid(TestBase):
+    """The reference book's واحد | مثنی | جمع grid."""
+
+    def test_grid_has_the_book_layout(self):
+        from ui import theme
+        rows = self.analyzer.conjugate(
+            self.analyzer.analyze_verb('أَنْزَلَ')['verb'])['past_active']
+        html = theme.gardaan_grid(rows, 'ur')
+        for label in ('واحد', 'مثنی', 'جمع', 'غائب مذکر', 'غائب مؤنث',
+                      'حاضر مذکر', 'حاضر مؤنث', 'متکلم'):
+            self.assertIn(label, html, label)
+        # five person rows plus the header
+        self.assertEqual(html.count('<tr>'), 6)
+        # the first person has no dual, so that cell is merged
+        self.assertIn('colspan="2"', html)
+
+    def test_grid_cells_carry_the_right_forms(self):
+        from ui import theme
+        rows = self.analyzer.conjugate(
+            self.analyzer.analyze_verb('أَنْزَلَ')['verb'])['past_active']
+        html = theme.gardaan_grid(rows, 'ur')
+        for form in ('أَنْزَلَ', 'أَنْزَلَا', 'أَنْزَلُوا', 'أَنْزَلَتْ',
+                     'أَنْزَلْنَ', 'أَنْزَلْتُ', 'أَنْزَلْنَا'):
+            self.assertIn(form, html, form)
+
+    def test_absent_tense_uses_the_books_times_sign(self):
+        from ui import theme
+        html = theme.gardaan_grid([], 'ur')
+        self.assertIn('قابلِ اطلاق نہیں', html)
+
+    def test_imperative_grid_has_two_rows(self):
+        from ui import theme
+        rows = self.analyzer.conjugate(
+            self.analyzer.analyze_verb('كَتَبَ')['verb'])['imperative']
+        html = theme.gardaan_grid(rows, 'ur')
+        self.assertEqual(html.count('<tr>'), 3)      # header + 2
+        self.assertIn('حاضر مذکر', html)
+        self.assertNotIn('متکلم', html)
+
+
 class TestUserData(TestBase):
     """Bookmarks, study history and spaced repetition still work."""
 

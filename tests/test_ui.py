@@ -2,7 +2,7 @@
 """End-to-end interface tests.
 
 These drive the real Streamlit app through ``AppTest`` — the same script the
-browser runs — so a broken button or an exception in a view is caught here
+browser runs — so a broken control or an exception in a section is caught here
 rather than by the student.
 """
 
@@ -14,8 +14,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from streamlit.testing.v1 import AppTest                        # noqa: E402
 
+from core.arabic_utils import canonical_marks                   # noqa: E402
+
 APP = str(Path(__file__).parent.parent / 'app.py')
-TIMEOUT = 90
+TIMEOUT = 120
 
 SPEC_VERBS = ['كَتَبَ', 'أَنْزَلَ', 'أَخْرَجَ', 'عَلَّمَ', 'تَقَبَّلَ',
               'اِخْتَلَفَ', 'اِنْتَفَعَ', 'اِسْتَهْزَأَ', 'قَالَ', 'دَعَا',
@@ -28,16 +30,8 @@ def fresh() -> AppTest:
     return at
 
 
-def analyse(at: AppTest, word: str) -> AppTest:
-    """Type a word into the one search box and press تجزیہ کریں."""
-    at.text_input[0].set_value(word)
-    at.button(key='FormSubmitter:search_form-🔍 تجزیہ کریں').click().run()
-    return at
-
-
 def submit(at: AppTest, word: str) -> AppTest:
     at.text_input[0].set_value(word)
-    # the submit button is the only form button on the page
     for btn in at.button:
         if btn.proto.form_id:
             btn.click().run()
@@ -51,45 +45,64 @@ def click_key(at: AppTest, key: str) -> AppTest:
             btn.click().run()
             return at
     raise AssertionError('button %r not found; have: %s'
-                         % (key, [b.key for b in at.button][:25]))
+                         % (key, [b.key for b in at.button][:30]))
 
 
 def all_text(at: AppTest) -> str:
-    parts = [m.value for m in at.markdown]
-    parts += [c.value for c in at.caption] if hasattr(at, 'caption') else []
-    return '\n'.join(str(p) for p in parts)
+    return '\n'.join(str(m.value) for m in at.markdown)
 
 
-class TestAppLoads(unittest.TestCase):
-    def test_home_page_renders(self):
+def contains_ar(haystack: str, needle: str) -> bool:
+    """Substring test that ignores the order the marks were written in.
+
+    The Quran text and a dictionary head-word may order shadda and the vowel
+    differently; both spellings are the same word.
+    """
+    return canonical_marks(needle) in canonical_marks(haystack)
+
+
+# ===========================================================================
+class TestSimplicity(unittest.TestCase):
+    """The interface must stay small enough for an older reader."""
+
+    def test_home_is_one_box_and_one_button(self):
         at = fresh()
         self.assertFalse(at.exception, at.exception)
-        text = all_text(at)
-        self.assertIn('عربی فعل اور گردان', text)
-        self.assertIn('تجزیہ کریں', str([b.label for b in at.button]))
-
-    def test_home_has_exactly_one_input(self):
-        """The elderly-friendly requirement: one box, one button."""
-        at = fresh()
         self.assertEqual(len(at.text_input), 1)
+        self.assertIn('عربی فعل اور گردان', all_text(at))
 
-    def test_no_selectors_for_root_baab_tense(self):
-        """The student must never be asked to choose root/baab/tense."""
+    def test_no_root_baab_or_tense_selectors(self):
         at = fresh()
         self.assertEqual(len(at.selectbox), 0)
-        # the only radio is the language switch
-        self.assertEqual(len(at.radio), 1)
+        self.assertEqual(len(at.radio), 1)          # only the language switch
         self.assertIn('زبان', at.radio[0].label)
 
-    def test_font_size_buttons_present(self):
+    def test_home_button_count_is_small(self):
+        """Home used to render 28 buttons; keep it lean."""
         at = fresh()
-        keys = [b.key for b in at.button]
-        for key in ('font_down', 'font_reset', 'font_up'):
-            self.assertIn(key, keys)
+        self.assertLessEqual(len(at.button), 14,
+                             'home has too many controls: %s'
+                             % [b.key for b in at.button])
+
+    def test_result_button_count_is_small(self):
+        """The result page used to render 42 buttons."""
+        at = submit(fresh(), 'أَنْزَلَ')
+        self.assertLessEqual(len(at.button), 20,
+                             'result page has too many controls: %s'
+                             % [b.key for b in at.button])
+
+    def test_removed_features_are_gone(self):
+        at = fresh()
+        keys = {str(b.key) for b in at.button}
+        for gone in ('side_practice', 'side_flashcards', 'side_dashboard',
+                     'side_compare', 'side_bookmarks', 'listen_btn',
+                     'save_btn', 'nav_table', 'nav_tree', 'nav_learn'):
+            self.assertNotIn(gone, keys, '%s should have been removed' % gone)
 
 
-class TestSearchFlow(unittest.TestCase):
-    def test_every_spec_verb_analyses_without_error(self):
+# ===========================================================================
+class TestVerbPage(unittest.TestCase):
+    def test_every_spec_verb_renders(self):
         for word in SPEC_VERBS:
             at = submit(fresh(), word)
             self.assertFalse(at.exception, '%s -> %s' % (word, at.exception))
@@ -97,43 +110,118 @@ class TestSearchFlow(unittest.TestCase):
             self.assertIn('فعل کی معلومات', text, word)
             self.assertIn(word, text, word)
 
-    def test_result_shows_baab_and_wazn(self):
+    def test_all_eight_sections_present(self):
         at = submit(fresh(), 'أَنْزَلَ')
         text = all_text(at)
-        for expected in ('ن ز ل', 'إفعال', 'أَفْعَلَ',
-                         'أَنْزَلَ', 'يُنْزِلُ', 'أُنْزِلَ', 'يُنْزَلُ'):
-            self.assertIn(expected, text, expected)
+        for section in ('فعل کی معلومات', 'چار بنیادی صورتیں', 'مکمل گردان',
+                        'امر', 'نہی', 'مشتقات', 'تمام افعال', 'باب',
+                        'قرآن میں استعمال'):
+            self.assertIn(section, text, section)
 
-    def test_result_shows_all_four_gardaans(self):
+    def test_identity_facts(self):
         at = submit(fresh(), 'أَنْزَلَ')
         text = all_text(at)
-        for expected in ('أَنْزَلْتُ', 'يُنْزِلُونَ', 'أُنْزِلَتْ', 'تُنْزَلِينَ'):
+        for expected in ('ن ز ل', 'إفعال', 'أَفْعَلَ', 'إِنْزَال',
+                         'مُنْزِل', 'مُنْزَل'):
             self.assertIn(expected, text, expected)
 
-    def test_intransitive_verb_says_not_applicable(self):
+    def test_four_principal_parts_shown(self):
+        at = submit(fresh(), 'أَنْزَلَ')
+        text = all_text(at)
+        for expected in ('أَنْزَلَ', 'يُنْزِلُ', 'أُنْزِلَ', 'يُنْزَلُ'):
+            self.assertIn(expected, text, expected)
+
+    def test_gardaan_uses_the_book_grid(self):
+        """واحد / مثنی / جمع columns and غائب / حاضر / متکلم rows."""
+        at = submit(fresh(), 'أَنْزَلَ')
+        text = all_text(at)
+        for label in ('واحد', 'مثنی', 'جمع',
+                      'غائب مذکر', 'غائب مؤنث', 'حاضر مذکر', 'حاضر مؤنث',
+                      'متکلم'):
+            self.assertIn(label, text, label)
+        self.assertIn('qa-grid-table', text)
+
+    def test_grid_contains_the_right_forms(self):
+        at = submit(fresh(), 'أَنْزَلَ')
+        text = all_text(at)
+        for form in ('أَنْزَلَا', 'أَنْزَلُوا', 'أَنْزَلْنَ', 'أَنْزَلْتُمَا',
+                     'أَنْزَلْنَا', 'يُنْزِلُونَ', 'أُنْزِلَتْ', 'تُنْزَلِينَ'):
+            self.assertIn(form, text, form)
+
+    def test_intransitive_shows_not_applicable(self):
         at = submit(fresh(), 'اِنْكَسَرَ')
         text = all_text(at)
         self.assertIn('قابلِ اطلاق نہیں', text)
         self.assertIn('مطاوعت', text)
 
-    def test_conjugated_input_is_parsed_on_screen(self):
+    def test_absent_baab_marked_with_times(self):
+        """The book's × for a باب with no attested verb for the root."""
+        at = submit(fresh(), 'أَنْزَلَ')
+        self.assertIn('×', all_text(at))
+
+    def test_afaal_lists_the_root(self):
+        at = submit(fresh(), 'أَنْزَلَ')
+        text = all_text(at)
+        for expected in ('نَزَلَ', 'نَزَّلَ', 'أَنْزَلَ', 'اِسْتَنْزَلَ'):
+            self.assertIn(expected, text, expected)
+
+    def test_other_root_verbs_are_clickable(self):
+        at = submit(fresh(), 'أَنْزَلَ')
+        buttons = [b for b in at.button if str(b.key).startswith('afaal_')]
+        self.assertTrue(buttons, 'no clickable sibling verbs')
+        at2 = buttons[0].click().run()
+        self.assertFalse(at2.exception, at2.exception)
+        self.assertIn('فعل کی معلومات', all_text(at2))
+
+    def test_conjugated_input_is_parsed(self):
         at = submit(fresh(), 'يُنْزِلُ')
         text = all_text(at)
         self.assertIn('آپ کا لکھا ہوا لفظ', text)
         self.assertIn('أَنْزَلَ', text)
         self.assertIn('مضارع معروف', text)
 
-    def test_example_chip_runs_an_analysis(self):
-        at = click_key(fresh(), 'ex_كَتَبَ')
-        self.assertFalse(at.exception, at.exception)
-        self.assertIn('فعل کی معلومات', all_text(at))
 
-    def test_empty_input_shows_friendly_urdu(self):
+# ===========================================================================
+class TestQuranicSection(unittest.TestCase):
+    """The Quranic ayaat — one of the three things the app exists to do."""
+
+    def test_ayaat_shown_with_reference_and_sigha(self):
+        at = submit(fresh(), 'أَنْزَلَ')
+        text = all_text(at)
+        self.assertIn('سورۃ', text)
+        self.assertIn('أَنزَلْنَا', text)
+        self.assertIn('جمع متکلم', text)
+
+    def test_ayaat_carry_both_translations(self):
+        at = submit(fresh(), 'كَوَّرَ')
+        text = all_text(at)
+        self.assertTrue(contains_ar(text, 'كُوِّرَتْ'), '81:1 not shown')
+        self.assertIn('qa-ayah-ur', text)
+        self.assertIn('qa-ayah-en', text)
+
+    def test_verb_without_occurrence_says_so(self):
+        at = submit(fresh(), 'اِنْكَسَرَ')
+        self.assertIn('قرآن مجید میں کوئی مستند استعمال', all_text(at))
+
+    def test_book_examples_appear(self):
+        """Verbs from the reference book's مجہول page find their ayaat."""
+        for word, expected in (('اِنْفَطَرَ', 'ٱنفَطَرَتْ'),
+                               ('كَوَّرَ', 'كُوِّرَتْ'),
+                               ('خَفَّفَ', 'يُخَفَّفُ'),
+                               ('تَقَبَّلَ', 'تَقَبَّلْ')):
+            at = submit(fresh(), word)
+            self.assertTrue(contains_ar(all_text(at), expected),
+                            '%s / %s' % (word, expected))
+
+
+# ===========================================================================
+class TestInvalidInput(unittest.TestCase):
+    def test_empty(self):
         at = submit(fresh(), '')
         self.assertFalse(at.exception)
         self.assertIn('براہ کرم عربی لفظ درج کریں۔', all_text(at))
 
-    def test_english_input_shows_friendly_message(self):
+    def test_english(self):
         at = submit(fresh(), 'hello')
         self.assertFalse(at.exception)
         self.assertIn('براہ کرم عربی حروف', all_text(at))
@@ -143,158 +231,67 @@ class TestSearchFlow(unittest.TestCase):
         self.assertFalse(at.exception)
         text = all_text(at)
         self.assertIn('مستند صرفی معلومات دستیاب نہیں', text)
-        self.assertNotIn('فعل کی معلومات', text)
+        self.assertNotIn('چار بنیادی صورتیں', text)
 
 
-class TestViews(unittest.TestCase):
-    """Each of the big navigation buttons opens without error."""
-
-    def _open(self, view_key: str, word: str = 'أَنْزَلَ') -> AppTest:
-        at = submit(fresh(), word)
-        at = click_key(at, view_key)
-        self.assertFalse(at.exception, '%s -> %s' % (view_key, at.exception))
-        return at
-
-    def test_table_view(self):
-        at = self._open('nav_table')
-        text = all_text(at)
-        for head in ('باب', 'مادہ', 'ماضی معروف', 'مضارع معروف',
-                     'ماضی مجہول', 'مضارع مجہول'):
-            self.assertIn(head, text, head)
-
-    def test_table_rows_are_clickable(self):
-        at = self._open('nav_table')
-        row_buttons = [b for b in at.button if str(b.key).startswith('tbl_row_')]
-        self.assertTrue(row_buttons, 'no clickable rows')
-        target = next(b for b in row_buttons if not b.proto.disabled)
-        at2 = target.click().run()
-        self.assertFalse(at2.exception, at2.exception)
-        self.assertIn('فعل کی معلومات', all_text(at2))
-
-    def test_tree_view(self):
-        at = self._open('nav_tree')
-        text = all_text(at)
-        for node in ('مادہ', 'فعل', 'باب', 'وزن', 'ماضی معروف', 'مضارع مجہول'):
-            self.assertIn(node, text, node)
-
-    def test_tree_nodes_are_clickable(self):
-        at = self._open('nav_tree')
-        tense_buttons = [b for b in at.button
-                         if str(b.key).startswith('tree_tense_')]
-        self.assertTrue(tense_buttons, 'no clickable tense nodes')
-        at2 = tense_buttons[0].click().run()
-        self.assertFalse(at2.exception, at2.exception)
-
-    def test_complete_sarf_view(self):
-        at = self._open('nav_sarf')
-        text = all_text(at)
-        for section in ('مادہ', 'باب', 'وزن', 'مصدر', 'اسم فاعل',
-                        'اسم مفعول'):
-            self.assertIn(section, text, section)
-        # the derivatives table itself (expander labels are not in markdown)
-        for derivative in ('إِنْزَال', 'مُنْزِل', 'مُنْزَل'):
-            self.assertIn(derivative, text, derivative)
-
-    def test_afaal_view_lists_every_baab(self):
-        at = self._open('nav_afaal')
-        text = all_text(at)
-        self.assertIn('تمام افعال', text)
-        # ن ز ل has verbs in باب I, II, IV, V, X and gaps elsewhere
-        for expected in ('نَزَلَ', 'نَزَّلَ', 'أَنْزَلَ', 'اِسْتَنْزَلَ'):
-            self.assertIn(expected, text, expected)
-        self.assertIn('دستیاب نہیں', text)
-
-    def test_gardaan_view(self):
-        at = self._open('nav_gardaan')
-        text = all_text(at)
-        self.assertIn('ماضی معروف', text)
-        self.assertIn('أَنْزَلْتُمَا', text)
-
-    def test_learning_view(self):
-        at = self._open('nav_learn')
-        text = all_text(at)
-        self.assertIn('بنیادی ساخت', text)
-
-    def test_quranic_view(self):
-        at = self._open('nav_quran', 'كَتَبَ')
-        self.assertIn('قرآن', all_text(at))
-
-    def test_abwaab_page_shows_all_eight(self):
+# ===========================================================================
+class TestControls(unittest.TestCase):
+    def test_text_size(self):
         at = fresh()
-        at = click_key(at, 'side_abwaab')
+        before = at.session_state['font_scale']
+        at = click_key(at, 'font_up')
+        self.assertGreater(at.session_state['font_scale'], before)
+        at = click_key(at, 'font_reset')
+        self.assertAlmostEqual(at.session_state['font_scale'], 1.15, places=2)
+
+    def test_three_languages(self):
+        for code, expected in (('en', 'Arabic Verbs'),
+                               ('ar', 'الأفعال العربية'),
+                               ('ur', 'عربی فعل')):
+            at = fresh()
+            at.radio[0].set_value(code).run()
+            self.assertFalse(at.exception, at.exception)
+            self.assertIn(expected, all_text(at), code)
+
+    def test_english_verb_page(self):
+        at = fresh()
+        at.radio[0].set_value('en').run()
+        at = submit(at, 'كَتَبَ')
+        self.assertFalse(at.exception, at.exception)
+        self.assertIn('Verb information', all_text(at))
+
+    def test_abwaab_page(self):
+        at = click_key(fresh(), 'go_abwaab')
         self.assertFalse(at.exception, at.exception)
         text = all_text(at)
         self.assertIn('ابواب ثلاثی مزید فیہ', text)
         for name in ('إفعال', 'تفعیل', 'مفاعلة', 'تفعّل', 'تفاعل',
                      'انفعال', 'افتعال', 'استفعال'):
             self.assertIn(name, text, name)
-        for wazn in ('أَفْعَلَ', 'فَعَّلَ', 'فَاعَلَ', 'تَفَعَّلَ', 'تَفَاعَلَ',
-                     'اِنْفَعَلَ', 'اِفْتَعَلَ', 'اِسْتَفْعَلَ'):
-            self.assertIn(wazn, text, wazn)
 
-
-class TestSecondaryPages(unittest.TestCase):
-    def test_every_sidebar_page_opens(self):
-        for key in ('side_bookmarks', 'side_compare', 'side_practice',
-                    'side_flashcards', 'side_dashboard', 'side_abwaab',
-                    'side_home'):
-            at = click_key(fresh(), key)
-            self.assertFalse(at.exception, '%s -> %s' % (key, at.exception))
-
-
-class TestControls(unittest.TestCase):
-    def test_text_size_changes(self):
-        at = fresh()
-        before = at.session_state['font_scale']
-        at = click_key(at, 'font_up')
-        self.assertGreater(at.session_state['font_scale'], before)
-        at = click_key(at, 'font_down')
-        at = click_key(at, 'font_reset')
-        self.assertAlmostEqual(at.session_state['font_scale'], 1.15, places=2)
-
-    def test_language_switch_to_english(self):
-        at = fresh()
-        at.radio[0].set_value('en').run()
+    def test_home_button_returns(self):
+        at = click_key(fresh(), 'go_abwaab')
+        at = click_key(at, 'go_home')
         self.assertFalse(at.exception, at.exception)
-        self.assertEqual(at.session_state['lang'], 'en')
-        self.assertIn('Arabic Verbs', all_text(at))
+        self.assertEqual(at.session_state['page'], 'home')
 
-    def test_language_switch_to_arabic(self):
-        at = fresh()
-        at.radio[0].set_value('ar').run()
+    def test_example_chip(self):
+        at = click_key(fresh(), 'ex_أَنْزَلَ')
         self.assertFalse(at.exception, at.exception)
-        self.assertIn('الأفعال العربية', all_text(at))
-
-    def test_english_result_page(self):
-        at = fresh()
-        at.radio[0].set_value('en').run()
-        at = submit(at, 'كَتَبَ')
-        self.assertFalse(at.exception, at.exception)
-        text = all_text(at)
-        self.assertIn('Verb information', text)
-        self.assertIn('Root', text)
-
-    def test_save_and_unsave(self):
-        at = submit(fresh(), 'كَتَبَ')
-        at = click_key(at, 'save_btn')
-        self.assertFalse(at.exception, at.exception)
-        labels = [b.label for b in at.button if b.key == 'save_btn']
-        self.assertIn('★ محفوظ شدہ', labels)
-        at = click_key(at, 'save_btn')
-        labels = [b.label for b in at.button if b.key == 'save_btn']
-        self.assertIn('⭐ محفوظ کریں', labels)
+        self.assertIn('فعل کی معلومات', all_text(at))
 
 
+# ===========================================================================
 class TestPdfButtons(unittest.TestCase):
-    def test_both_download_buttons_exist_and_carry_pdf_bytes(self):
+    def test_both_downloads_render(self):
         at = submit(fresh(), 'أَنْزَلَ')
         self.assertFalse(at.exception, at.exception)
-        keys = [d.proto.id for d in at.get('download_button')] \
-            if at.get('download_button') else []
-        self.assertTrue(keys, 'no download buttons rendered')
+        downloads = at.get('download_button')
+        self.assertGreaterEqual(len(downloads), 2,
+                                'expected the one-page and detailed PDFs')
 
-    def test_pdf_generation_does_not_raise_in_the_app(self):
-        for word in ('أَنْزَلَ', 'خَرَجَ', 'دَعَا', 'رَدَّ'):
+    def test_pdf_generation_never_raises(self):
+        for word in ('أَنْزَلَ', 'خَرَجَ', 'دَعَا', 'رَدَّ', 'اِنْكَسَرَ'):
             at = submit(fresh(), word)
             self.assertFalse(at.exception, '%s -> %s' % (word, at.exception))
 

@@ -81,8 +81,8 @@ def _render_one(baab: dict, analyzer, lang: str, on_select=None):
                     unsafe_allow_html=True)
 
         if on_select:
-            cols = st.columns(min(len(verbs), 4))
-            for i, v in enumerate(verbs):
+            cols = st.columns(min(len(verbs), 5))
+            for i, v in enumerate(verbs[:10]):
                 with cols[i % len(cols)]:
                     if st.button(v.get('arabic', ''),
                                  key='abwaab_%s_%s' % (baab['form'], v.get('id')),
@@ -104,9 +104,8 @@ def _render_one(baab: dict, analyzer, lang: str, on_select=None):
                     rows = conj.get(key) or []
                     st.markdown(f'**{t(key, lang)}**')
                     if rows:
-                        st.markdown(
-                            theme.gardaan_table(rows, lang, show_meanings=False),
-                            unsafe_allow_html=True)
+                        st.markdown(theme.gardaan_grid(rows, lang),
+                                    unsafe_allow_html=True)
                     else:
                         theme.notice(t('not_applicable', lang))
 
