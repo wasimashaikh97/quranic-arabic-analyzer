@@ -86,8 +86,8 @@ _T = {
                  'en': '📚 Complete Sarf'},
     'nav_afaal': {'ur': '📚 تمام افعال', 'ar': '📚 جميع الأفعال',
                   'en': '📚 All verbs of this root'},
-    'nav_abwaab': {'ur': '📚 آٹھ ابواب', 'ar': '📚 الأبواب الثمانية',
-                   'en': '📚 The eight Abwaab'},
+    'nav_abwaab': {'ur': '📚 آٹھ ابواب', 'ar': '📚 الأبواب',
+                   'en': '📚 The 8 Abwaab'},
     'nav_gardaan': {'ur': '📖 مکمل گردان', 'ar': '📖 التصريف الكامل',
                     'en': '📖 Complete Gardaan'},
     'nav_quran': {'ur': '📖 قرآن میں استعمال', 'ar': '📖 في القرآن',
@@ -215,24 +215,29 @@ def inject_css(font_scale: float = 1.0, lang: str = 'ur'):
         color: {C['ink']};
     }}
     .block-container {{
-        padding-top: 1.1rem; padding-bottom: 3rem;
+        padding-top: 0.6rem; padding-bottom: 3rem;
         max-width: 1250px;
     }}
-    #MainMenu, footer {{ visibility: hidden; }}
+    /* developer chrome a Quran student has no use for */
+    #MainMenu, footer, header[data-testid="stHeader"],
+    [data-testid="stToolbar"], [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"] {{
+        display: none !important; visibility: hidden !important;
+    }}
 
     /* ---------- header ---------- */
     .qa-header {{
         background: linear-gradient(135deg, {C['brand']} 0%, {C['brand_mid']} 100%);
-        border-radius: 18px; padding: 26px 20px; text-align: center;
-        margin-bottom: 18px; box-shadow: 0 6px 18px rgba(20,83,45,.18);
+        border-radius: 14px; padding: 13px 20px; text-align: center;
+        margin: 0 0 12px 0; box-shadow: 0 4px 12px rgba(20,83,45,.16);
     }}
     .qa-title {{
-        font-size: {2.5 * font_scale:.2f}em; font-weight: 700;
-        color: #fef3c7; margin: 0 0 6px 0; line-height: 1.35;
+        font-size: {1.75 * font_scale:.2f}em; font-weight: 700;
+        color: #fef3c7; margin: 0; line-height: 1.35;
     }}
     .qa-subtitle {{
-        font-size: {1.15 * font_scale:.2f}em; color: #dcfce7; margin: 0;
-        line-height: 1.7;
+        font-size: {0.92 * font_scale:.2f}em; color: #dcfce7;
+        margin: 3px 0 0 0; line-height: 1.5;
     }}
 
     /* ---------- cards ---------- */
@@ -418,27 +423,53 @@ def inject_css(font_scale: float = 1.0, lang: str = 'ur'):
     }}
 
     /* ---------- buttons ---------- */
-    .stButton > button {{
+    .stButton > button, .stFormSubmitButton > button {{
         font-family: {ARABIC_STACK};
-        font-size: {1.2 * font_scale:.2f}em !important;
+        font-size: {1.08 * font_scale:.2f}em !important;
         font-weight: 700 !important;
-        border-radius: 14px !important;
-        padding: 0.7em 1.1em !important;
+        border-radius: 12px !important;
+        padding: 0.45em 0.7em !important;
         border: 2px solid {C['brand']} !important;
         background: {C['card']} !important;
         color: {C['brand']} !important;
-        line-height: 1.6 !important;
-        min-height: 3em;
+        line-height: 1.4 !important;
+        min-height: 2.5em;
+        white-space: nowrap;          /* «A−» must never split across lines */
+        overflow: hidden; text-overflow: ellipsis;
     }}
-    .stButton > button:hover {{
+    /* Streamlit puts the label in a <p> with its own size, which would
+       otherwise shrink every button back to body text */
+    .stButton > button p, .stDownloadButton > button p,
+    .stFormSubmitButton > button p {{
+        white-space: nowrap; margin: 0;
+        font-size: inherit !important; font-weight: inherit !important;
+    }}
+    /* the example verbs need to be read at a glance, so they get big Arabic */
+    [class*="st-key-ex_"] button {{
+        font-size: {1.9 * font_scale:.2f}em !important;
+        min-height: 2.6em; padding: 0.25em 0.5em !important;
+        color: {C['accent']} !important;
+    }}
+    [class*="st-key-ex_"] button:hover {{
+        background: {C['accent_soft']} !important;
+    }}
+    /* the sibling-verb buttons under «تمام افعال» */
+    [class*="st-key-afaal_"] button {{
+        font-size: {1.3 * font_scale:.2f}em !important;
+        color: {C['accent']} !important;
+    }}
+    .stButton > button:hover, .stFormSubmitButton > button:hover {{
         background: {C['brand_soft']} !important;
         border-color: {C['brand_mid']} !important;
     }}
-    .stButton > button[kind="primary"] {{
+    .stButton > button[kind*="primary"],
+    .stFormSubmitButton > button[kind*="primary"] {{
         background: {C['brand']} !important; color: #ffffff !important;
-        font-size: {1.45 * font_scale:.2f}em !important;
+        font-size: {1.5 * font_scale:.2f}em !important;
+        min-height: 3.1em; padding: 0.6em 1.2em !important;
     }}
-    .stButton > button[kind="primary"]:hover {{
+    .stButton > button[kind*="primary"]:hover,
+    .stFormSubmitButton > button[kind*="primary"]:hover {{
         background: {C['brand_mid']} !important;
     }}
     .stDownloadButton > button {{
@@ -447,6 +478,24 @@ def inject_css(font_scale: float = 1.0, lang: str = 'ur'):
         background: {C['accent']} !important; color: #fff !important;
         border: none !important; padding: 0.7em 1.1em !important;
     }}
+
+    /* ---------- the slim top control strip ---------- */
+    .qa-toolbar {{
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 6px;
+    }}
+    .qa-ctl-label {{
+        font-size: {0.9 * font_scale:.2f}em; color: {C['ink_faint']};
+        margin: 0 0 2px 0; white-space: nowrap;
+    }}
+    /* the language chooser, rendered compactly */
+    div[role="radiogroup"] {{ gap: 6px !important; flex-wrap: nowrap; }}
+    div[role="radiogroup"] label {{
+        font-size: {0.98 * font_scale:.2f}em !important;
+        font-weight: 600 !important; white-space: nowrap;
+        margin-right: 4px !important;
+    }}
+    div[role="radiogroup"] label p {{ font-size: inherit !important; }}
 
     /* ---------- inputs ---------- */
     .stTextInput > div > div > input {{
@@ -464,11 +513,61 @@ def inject_css(font_scale: float = 1.0, lang: str = 'ur'):
         font-weight: 700 !important; color: {C['brand']} !important;
     }}
 
-    /* ---------- expanders & tabs ---------- */
-    .streamlit-expanderHeader, details summary {{
-        font-size: {1.2 * font_scale:.2f}em !important; font-weight: 700 !important;
+    /* ---------- collapsible sections ---------- */
+    /* Each numbered section of the verb page is an expander styled to look
+       like a solid green bar, so the arrow makes it obvious it opens. */
+    [data-testid="stExpander"] {{ margin: 12px 0; }}
+    [data-testid="stExpander"] details {{
+        border: none !important; background: transparent !important;
+        box-shadow: none !important;
+    }}
+    [data-testid="stExpander"] summary {{
+        background: {C['brand']} !important;
+        border-radius: 14px !important;
+        padding: 14px 20px !important;
+        direction: rtl; text-align: right;
+        /* Streamlit puts the arrow first; in RTL it belongs on the right,
+           next to the Urdu heading rather than marooned on the far left */
+        flex-direction: row-reverse !important;
+        justify-content: flex-start !important;
+        gap: 12px;
+        font-size: {1.4 * font_scale:.2f}em !important;
+        font-weight: 700 !important;
+        color: #fef3c7 !important;
+        list-style: none;
+    }}
+    [data-testid="stExpander"] summary:hover {{
+        background: {C['brand_mid']} !important;
+    }}
+    [data-testid="stExpander"] summary p {{
+        font-size: inherit !important; font-weight: inherit !important;
+        color: #fef3c7 !important; margin: 0;
+    }}
+    /* make the open/close arrow large and clearly visible */
+    [data-testid="stExpander"] summary svg {{
+        width: {1.5 * font_scale:.2f}em !important;
+        height: {1.5 * font_scale:.2f}em !important;
+        fill: #fef3c7 !important; color: #fef3c7 !important;
+    }}
+    [data-testid="stExpander"] details > div {{
+        border: 2px solid {C['brand_soft']};
+        border-radius: 0 0 14px 14px;
+        padding: 16px 14px 10px 14px;
+        background: {C['card']};
+    }}
+    /* the inner expanders (the Urdu gloss lists) stay lighter */
+    [data-testid="stExpander"] [data-testid="stExpander"] summary {{
+        background: {C['brand_soft']} !important;
+        color: {C['brand']} !important;
+        font-size: {1.05 * font_scale:.2f}em !important;
+    }}
+    [data-testid="stExpander"] [data-testid="stExpander"] summary p {{
         color: {C['brand']} !important;
     }}
+    [data-testid="stExpander"] [data-testid="stExpander"] summary svg {{
+        fill: {C['brand']} !important; color: {C['brand']} !important;
+    }}
+
     .stTabs [data-baseweb="tab"] {{
         font-size: {1.1 * font_scale:.2f}em; font-weight: 700;
         padding: 10px 16px;
@@ -481,7 +580,7 @@ def inject_css(font_scale: float = 1.0, lang: str = 'ur'):
         .qa-verb {{ font-size: {2.5 * font_scale:.2f}em; }}
         .qa-grid {{ grid-template-columns: 1fr 1fr; }}
         table.qa-table {{ min-width: 460px; }}
-        .stButton > button {{ font-size: {1.05 * font_scale:.2f}em !important; }}
+        .stButton > button, .stFormSubmitButton > button {{ font-size: {1.05 * font_scale:.2f}em !important; }}
     }}
     @media (max-width: 460px) {{
         .qa-grid {{ grid-template-columns: 1fr; }}

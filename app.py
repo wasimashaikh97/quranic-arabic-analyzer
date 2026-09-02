@@ -82,15 +82,20 @@ def main():
 
 
 def render_controls(lang: str):
-    """The only chrome: three destinations, language, and text size."""
-    nav, langs, size = st.columns([3, 2, 2])
+    """One slim strip: two destinations, the language, and the text size.
 
-    with nav:
-        c1, c2 = st.columns(2)
-        if c1.button(t('home', lang), key='go_home', use_container_width=True):
+    Deliberately compact — every pixel here pushes the search box further down
+    the page, and the search box has to be the first thing an older reader
+    sees without scrolling.
+    """
+    home, abwaab, langs, sizes = st.columns([2, 2, 3, 2])
+
+    with home:
+        if st.button(t('home', lang), key='go_home', use_container_width=True):
             st.session_state.page = 'home'
             st.rerun()
-        if c2.button(t('nav_abwaab', lang), key='go_abwaab',
+    with abwaab:
+        if st.button(t('nav_abwaab', lang), key='go_abwaab',
                      use_container_width=True):
             st.session_state.page = 'abwaab'
             st.rerun()
@@ -99,22 +104,26 @@ def render_controls(lang: str):
         codes = list(theme.LANGS)
         chosen = st.radio(t('language', lang), codes, index=codes.index(lang),
                           horizontal=True, key='lang_radio',
+                          label_visibility='collapsed',
                           format_func=lambda c: theme.LANGS[c])
         if chosen != lang:
             st.session_state.lang = chosen
             st.rerun()
 
-    with size:
-        st.markdown(f'**{t("text_size", lang)}**')
-        a, b, c, _ = st.columns([1, 1, 1, 2])
-        if a.button('A−', key='font_down'):
+    with sizes:
+        # three equal columns, so «A−» and «A+» always have room on one line
+        a, b, c = st.columns(3)
+        if a.button('A −', key='font_down', use_container_width=True,
+                    help=t('text_size', lang)):
             st.session_state.font_scale = max(0.9,
                                               st.session_state.font_scale - 0.15)
             st.rerun()
-        if b.button('A', key='font_reset'):
+        if b.button('A', key='font_reset', use_container_width=True,
+                    help=t('reset_size', lang)):
             st.session_state.font_scale = 1.15
             st.rerun()
-        if c.button('A+', key='font_up'):
+        if c.button('A +', key='font_up', use_container_width=True,
+                    help=t('text_size', lang)):
             st.session_state.font_scale = min(2.2,
                                               st.session_state.font_scale + 0.15)
             st.rerun()
@@ -186,14 +195,14 @@ def render_verb_page(analyzer, pdf_gen, result: dict, lang: str):
 
     parsed = result.get('conjugated_info')
     if parsed:
-        _section('⚡', t('parsed_as', lang), lang)
-        st.markdown(theme.fact_grid([
-            ('آپ کا لفظ', parsed.get('input_word', '')),
-            (t('base_verb', lang), parsed.get('base_verb', '')),
-            (t('tense', lang), parsed.get('tense_urdu', '')),
-            (t('th_sigha', lang), parsed.get('sigha_urdu', '')),
-        ], small_keys=(t('tense', lang), t('th_sigha', lang))),
-            unsafe_allow_html=True)
+        with _section('⚡', t('parsed_as', lang), lang, expanded=True):
+            st.markdown(theme.fact_grid([
+                ('آپ کا لفظ', parsed.get('input_word', '')),
+                (t('base_verb', lang), parsed.get('base_verb', '')),
+                (t('tense', lang), parsed.get('tense_urdu', '')),
+                (t('th_sigha', lang), parsed.get('sigha_urdu', '')),
+            ], small_keys=(t('tense', lang), t('th_sigha', lang))),
+                unsafe_allow_html=True)
 
     # ---- the verb itself ------------------------------------------------
     st.markdown(
@@ -203,100 +212,114 @@ def render_verb_page(analyzer, pdf_gen, result: dict, lang: str):
             <div class="qa-verb-meaning-en">{theme.esc(verb.get('meaning_english',''))}</div>
         </div>""", unsafe_allow_html=True)
 
-    # ---- ① فعل کی معلومات -----------------------------------------------
-    _section('①', t('verb_info', lang), lang)
+    # ---- ① فعل کی معلومات — the one section open by default -------------
     vtype = ArabicMorphology.get_verb_type_info(verb.get('verb_type', 'sound'))
-    st.markdown(theme.fact_grid([
-        (t('root', lang), verb.get('root', '')),
-        (t('baab', lang), verb.get('baab_name_arabic', '')),
-        (t('wazn', lang), verb.get('wazn', '')),
-        (t('verb_type', lang), vtype.get('title_ur', '')),
-        (t('masdar', lang), verb.get('masdar') or '—'),
-        (t('ism_fail', lang), verb.get('ism_fail') or '—'),
-        (t('ism_mafool', lang), verb.get('ism_mafool') or na),
-        (t('transitivity', lang), verb.get('transitivity', '')),
-    ], small_keys=(t('verb_type', lang), t('transitivity', lang))),
-        unsafe_allow_html=True)
-    if verb.get('unavailable_note'):
-        theme.notice(verb['unavailable_note'])
+    with _section('①', t('verb_info', lang), lang, expanded=True):
+        st.markdown(theme.fact_grid([
+            (t('root', lang), verb.get('root', '')),
+            (t('baab', lang), verb.get('baab_name_arabic', '')),
+            (t('wazn', lang), verb.get('wazn', '')),
+            (t('verb_type', lang), vtype.get('title_ur', '')),
+            (t('masdar', lang), verb.get('masdar') or '—'),
+            (t('ism_fail', lang), verb.get('ism_fail') or '—'),
+            (t('ism_mafool', lang), verb.get('ism_mafool') or na),
+            (t('transitivity', lang), verb.get('transitivity', '')),
+        ], small_keys=(t('verb_type', lang), t('transitivity', lang))),
+            unsafe_allow_html=True)
+        if verb.get('unavailable_note'):
+            theme.notice(verb['unavailable_note'])
 
     # ---- ② چار بنیادی صورتیں --------------------------------------------
-    _section('②', 'چار بنیادی صورتیں', lang)
-    st.markdown(theme.fact_grid([
-        (t('past_active', lang), verb.get('past_3ms') or '—'),
-        (t('present_active', lang), verb.get('present_3ms') or '—'),
-        (t('past_passive', lang), verb.get('past_passive_3ms') or na),
-        (t('present_passive', lang), verb.get('present_passive_3ms') or na),
-    ]), unsafe_allow_html=True)
+    with _section('②', 'چار بنیادی صورتیں', lang):
+        st.markdown(theme.fact_grid([
+            (t('past_active', lang), verb.get('past_3ms') or '—'),
+            (t('present_active', lang), verb.get('present_3ms') or '—'),
+            (t('past_passive', lang), verb.get('past_passive_3ms') or na),
+            (t('present_passive', lang), verb.get('present_passive_3ms') or na),
+        ]), unsafe_allow_html=True)
 
     # ---- ③ مکمل گردان ---------------------------------------------------
-    _section('③', t('nav_gardaan', lang), lang)
-    for key in FOUR:
-        rows = conj.get(key) or []
-        st.markdown(f'<div class="qa-tense-head">{theme.esc(t(key, lang))}</div>',
-                    unsafe_allow_html=True)
-        st.markdown(theme.gardaan_grid(rows, lang), unsafe_allow_html=True)
-        if rows:
-            with st.expander('%s — %s' % (t('th_urdu', lang), t(key, lang))):
-                st.markdown(theme.gardaan_meaning_list(rows, lang),
-                            unsafe_allow_html=True)
+    with _section('③', t('nav_gardaan', lang), lang):
+        for key in FOUR:
+            rows = conj.get(key) or []
+            st.markdown(
+                f'<div class="qa-tense-head">{theme.esc(t(key, lang))}</div>',
+                unsafe_allow_html=True)
+            st.markdown(theme.gardaan_grid(rows, lang), unsafe_allow_html=True)
+            if rows:
+                with st.expander('%s — %s' % (t('th_urdu', lang),
+                                              t(key, lang))):
+                    st.markdown(theme.gardaan_meaning_list(rows, lang),
+                                unsafe_allow_html=True)
 
     # ---- ④ امر و نہی ----------------------------------------------------
-    _section('④', '%s · %s' % (t('imperative', lang), t('prohibition', lang)),
-             lang)
-    left, right = st.columns(2)
-    with left:
-        st.markdown(f'<div class="qa-tense-head">{theme.esc(t("imperative", lang))}</div>',
-                    unsafe_allow_html=True)
-        st.markdown(theme.gardaan_grid(conj.get('imperative') or [], lang),
-                    unsafe_allow_html=True)
-    with right:
-        st.markdown(f'<div class="qa-tense-head">{theme.esc(t("prohibition", lang))}</div>',
-                    unsafe_allow_html=True)
-        st.markdown(theme.gardaan_grid(conj.get('prohibition') or [], lang),
-                    unsafe_allow_html=True)
+    with _section('④', '%s · %s' % (t('imperative', lang),
+                                    t('prohibition', lang)), lang):
+        left, right = st.columns(2)
+        with left:
+            st.markdown(
+                f'<div class="qa-tense-head">'
+                f'{theme.esc(t("imperative", lang))}</div>',
+                unsafe_allow_html=True)
+            st.markdown(theme.gardaan_grid(conj.get('imperative') or [], lang),
+                        unsafe_allow_html=True)
+        with right:
+            st.markdown(
+                f'<div class="qa-tense-head">'
+                f'{theme.esc(t("prohibition", lang))}</div>',
+                unsafe_allow_html=True)
+            st.markdown(theme.gardaan_grid(conj.get('prohibition') or [], lang),
+                        unsafe_allow_html=True)
 
     # ---- ⑤ مشتقات -------------------------------------------------------
-    _section('⑤', t('derived', lang), lang)
-    derived = verb.get('derived_nouns') or {}
-    if derived:
-        st.markdown(theme.simple_table(
-            [t('th_sigha', lang), t('th_arabic', lang), t('wazn', lang),
-             t('th_urdu', lang)],
-            [[d.get('label_ur', ''), d.get('arabic', ''), d.get('pattern', ''),
-              d.get('meaning_urdu', '')]
-             for d in derived.values() if isinstance(d, dict)],
-            lang, ['qa-ur', 'qa-ar', 'qa-pron', 'qa-ur']),
-            unsafe_allow_html=True)
-    else:
-        theme.notice(na)
+    with _section('⑤', t('derived', lang), lang):
+        derived = verb.get('derived_nouns') or {}
+        if derived:
+            st.markdown(theme.simple_table(
+                [t('th_sigha', lang), t('th_arabic', lang), t('wazn', lang),
+                 t('th_urdu', lang)],
+                [[d.get('label_ur', ''), d.get('arabic', ''),
+                  d.get('pattern', ''), d.get('meaning_urdu', '')]
+                 for d in derived.values() if isinstance(d, dict)],
+                lang, ['qa-ur', 'qa-ar', 'qa-pron', 'qa-ur']),
+                unsafe_allow_html=True)
+        else:
+            theme.notice(na)
 
     # ---- ⑥ اسی مادہ کے دیگر افعال ---------------------------------------
-    _section('⑥', '%s — %s' % (t('nav_afaal', lang), verb.get('root', '')), lang)
-    render_afaal(analyzer, verb, lang)
+    with _section('⑥', '%s — %s' % (t('nav_afaal', lang),
+                                    verb.get('root', '')), lang):
+        render_afaal(analyzer, verb, lang)
 
     # ---- ⑦ اس باب کی وضاحت ----------------------------------------------
     baab = result.get('baab') or {}
-    _section('⑦', '%s — %s' % (t('baab', lang), baab.get('name_ar', '')), lang)
-    st.markdown(f'<div class="qa-info">{theme.esc(baab.get("meaning_ur",""))}</div>',
-                unsafe_allow_html=True)
-    st.markdown(f'<div class="qa-card" dir="ltr" style="text-align:left">'
-                f'{theme.esc(baab.get("meaning_en",""))}</div>',
-                unsafe_allow_html=True)
+    with _section('⑦', '%s — %s' % (t('baab', lang),
+                                    baab.get('name_ar', '')), lang):
+        st.markdown(
+            f'<div class="qa-info">{theme.esc(baab.get("meaning_ur",""))}</div>',
+            unsafe_allow_html=True)
+        st.markdown(f'<div class="qa-card" dir="ltr" style="text-align:left">'
+                    f'{theme.esc(baab.get("meaning_en",""))}</div>',
+                    unsafe_allow_html=True)
 
     # ---- ⑧ قرآن مجید میں استعمال ----------------------------------------
-    _section('⑧', t('nav_quran', lang), lang)
-    render_quranic(result.get('quranic_usage') or [], lang)
+    ayaat = result.get('quranic_usage') or []
+    with _section('⑧', '%s (%d)' % (t('nav_quran', lang), len(ayaat)), lang):
+        render_quranic(ayaat, lang)
 
     # ---- PDF ------------------------------------------------------------
     st.markdown('---')
     render_pdf(pdf_gen, result, lang)
 
 
-def _section(number: str, title: str, lang: str):
-    st.markdown(
-        f'<div class="qa-section"><span class="qa-section-num">{number}</span>'
-        f'{theme.esc(title)}</div>', unsafe_allow_html=True)
+def _section(number: str, title: str, lang: str, expanded: bool = False):
+    """A numbered, click-to-open section of the verb page.
+
+    Returns the expander, so callers use it as a context manager.  Only the
+    first section opens by default: the page then fits on one screen and the
+    student chooses what to look at, instead of scrolling past everything.
+    """
+    return st.expander('%s  %s' % (number, title), expanded=expanded)
 
 
 def render_afaal(analyzer, verb: dict, lang: str):

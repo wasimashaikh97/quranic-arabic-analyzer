@@ -49,7 +49,17 @@ def click_key(at: AppTest, key: str) -> AppTest:
 
 
 def all_text(at: AppTest) -> str:
-    return '\n'.join(str(m.value) for m in at.markdown)
+    """Everything on the page, including the collapsible section headings.
+
+    The numbered sections are expanders, so their titles live in the expander
+    label rather than in a markdown block.
+    """
+    parts = [str(m.value) for m in at.markdown]
+    try:
+        parts += [str(e.label) for e in at.expander]
+    except Exception:                                   # pragma: no cover
+        pass
+    return '\n'.join(parts)
 
 
 def contains_ar(haystack: str, needle: str) -> bool:
@@ -298,3 +308,33 @@ class TestPdfButtons(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
+
+# ===========================================================================
+class TestCollapsibleSections(unittest.TestCase):
+    """The verb page is an accordion: only the first section opens itself."""
+
+    def test_sections_are_expanders(self):
+        at = submit(fresh(), 'أَنْزَلَ')
+        labels = [str(e.label) for e in at.expander]
+        for number in ('①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧'):
+            self.assertTrue(any(number in l for l in labels),
+                            'section %s is not collapsible' % number)
+
+    def test_only_the_first_section_starts_open(self):
+        at = submit(fresh(), 'أَنْزَلَ')
+        numbered = [e for e in at.expander
+                    if any(n in str(e.label) for n in '①②③④⑤⑥⑦⑧')]
+        # the open/closed state lives on the proto, not on the wrapper
+        opened = [str(e.label) for e in numbered if e.proto.expanded]
+        self.assertEqual(len(opened), 1,
+                         'expected one open section, got %s' % opened)
+        self.assertIn('①', opened[0])
+
+    def test_collapsed_sections_still_hold_their_content(self):
+        """Collapsed only hides it visually — the content is rendered."""
+        at = submit(fresh(), 'أَنْزَلَ')
+        text = all_text(at)
+        self.assertIn('أَنْزَلْتُمَا', text)      # inside ③
+        self.assertIn('إِنْزَال', text)           # inside ⑤
+        self.assertIn('اِسْتَنْزَلَ', text)        # inside ⑥
