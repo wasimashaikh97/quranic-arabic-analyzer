@@ -159,16 +159,18 @@ def build():
             if info['lemma']:
                 g['lemma_tags'][info['lemma']] += 1
 
-            seg_rec = g['segments'].setdefault(form, {
-                'tense': info['tense'], 'voice': info['voice'],
-                'pgn': info['pgn'], 'mood': info['mood'], 'count': 0})
-            seg_rec['count'] += 1
+            # One spelling can be more than one thing.  يَعْلَمُ is the 3MS
+            # «اللَّهُ يَعْلَمُ» and also the stem the corpus splits out of the
+            # 3MP يَعْلَمُونَ.  Keeping only the reading that happened to come
+            # first loses the other one for good — which is how the مضارع of
+            # عَلِمَ came to be reported as unattested.  Every distinct
+            # analysis is counted; the commonest becomes the primary one.
+            analysis = (info['tense'], info['voice'], info['pgn'],
+                        info['mood'])
+            g['segments'].setdefault(form, Counter())[analysis] += 1
 
             # the word as the student would type it, pronouns and all
-            w_rec = g['words'].setdefault(whole, {
-                'tense': info['tense'], 'voice': info['voice'],
-                'pgn': info['pgn'], 'mood': info['mood'], 'count': 0})
-            w_rec['count'] += 1
+            g['words'].setdefault(whole, Counter())[analysis] += 1
 
             if len(g['occurrences']) < MAX_OCCURRENCES:
                 g['occurrences'].append({
@@ -179,20 +181,37 @@ def build():
                 })
 
     # ---- pass 3: head-word and principal parts, attested only -----------
+    def resolve(counter):
+        """Commonest analysis first, every other one kept beside it."""
+        ranked = counter.most_common()
+        (tense, voice, pgn, mood), _n = ranked[0]
+        rec = {'tense': tense, 'voice': voice, 'pgn': pgn, 'mood': mood,
+               'count': sum(counter.values())}
+        if len(ranked) > 1:
+            rec['alts'] = [list(a) for a, _ in ranked[1:]]
+        return rec
+
     verbs = []
     for (root, baab), g in groups.items():
+        g['segments'] = {f: resolve(c) for f, c in g['segments'].items()}
+        g['words'] = {w: resolve(c) for w, c in g['words'].items()}
+
         principal = {}
         for form, s in g['segments'].items():
-            if s['mood'] not in (None, 'IND'):
-                continue
-            key = None
-            if s['tense'] == 'PERF' and s['pgn'] == '3MS':
-                key = 'past_passive' if s['voice'] == 'PASS' else 'past_active'
-            elif s['tense'] == 'IMPF' and s['pgn'] == '3MS':
-                key = ('present_passive' if s['voice'] == 'PASS'
-                       else 'present_active')
-            if key and key not in principal:
-                principal[key] = form
+            # every reading this spelling has, not just the commonest
+            readings = [(s['tense'], s['voice'], s['pgn'], s['mood'])]
+            readings += [tuple(a) for a in s.get('alts', [])]
+            for tense, voice, pgn, mood in readings:
+                if mood not in (None, 'IND'):
+                    continue
+                key = None
+                if tense == 'PERF' and pgn == '3MS':
+                    key = 'past_passive' if voice == 'PASS' else 'past_active'
+                elif tense == 'IMPF' and pgn == '3MS':
+                    key = ('present_passive' if voice == 'PASS'
+                           else 'present_active')
+                if key and key not in principal:
+                    principal[key] = form
 
         headword = (principal.get('past_active')
                     or principal.get('present_active')
