@@ -270,6 +270,47 @@ class TestIslam360Data(Base):
         res = self.analyzer.analyze_verb('أَنْزَلَ')
         self.assertTrue((res.get('islam360_lughaat') or {}).get('lughaat'))
 
+    def test_occurrences_are_the_verbs_own_not_the_roots(self):
+        """Islam360 groups by root; the verb searched must still be the one
+        shown.  Asking it for ق ب ل returns the preposition قَبْلِكَ."""
+        res = self.analyzer.analyze_verb('تَقَبَّلَ')
+        usage = res.get('quranic_usage') or []
+        self.assertTrue(usage)
+        for occ in usage:
+            self.assertFalse(occ.get('root_level'), occ.get('highlighted_word'))
+            self.assertTrue(occ.get('sigha_urdu'),
+                            'no صیغہ for %s' % occ.get('highlighted_word'))
+            self.assertIn('قبل', key_bare(occ['highlighted_word']))
+
+    def test_islam360_supplies_text_but_not_the_sigha(self):
+        res = self.analyzer.analyze_verb('كَوَّرَ')
+        occ = (res.get('quranic_usage') or [])[0]
+        self.assertEqual(occ['text_source'], 'Islam360')
+        self.assertTrue(occ['translation_urdu'])
+        self.assertTrue(occ['sigha_urdu'])          # from the tagged corpus
+
+    def test_ruku_marker_and_surah_prefix_are_not_displayed(self):
+        ayah = self.provider.ayah(15, 90)
+        self.assertFalse(ayah['arabic_text'].rstrip()[-1].isdigit(),
+                         ayah['arabic_text'][-20:])
+        self.assertFalse(ayah['surah_name_arabic'].startswith('سور'),
+                         ayah['surah_name_arabic'])
+
+    def test_quranic_root_with_no_verb_says_so(self):
+        """ن و م is Quranic, but only as نَوْم and مَنَام — never a verb."""
+        res = self.analyzer.analyze_verb('نَامَ')
+        self.assertFalse(res['found'])
+        self.assertEqual(res['reason'], 'root_no_verb')
+        info = res['root_no_verb']
+        self.assertEqual(info['root'], 'ن و م')
+        self.assertTrue(info['words'])
+        self.assertEqual(info['source'], 'Islam360')
+
+    def test_root_with_a_verb_is_never_reported_as_verbless(self):
+        for word in ('قَالَ', 'خَافَ', 'بَاعَ', 'كَتَبَ'):
+            res = self.analyzer.analyze_verb(word)
+            self.assertTrue(res.get('found'), word)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

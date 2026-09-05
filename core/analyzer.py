@@ -178,6 +178,24 @@ class VerbAnalyzer:
                 return self._quranic_result(quranic, cleaned, lang)
 
         guessed = self.search_engine.guess_root(cleaned)
+
+        # ---- 8. a Quranic root, but never used as a verb -----------------
+        #  نَامَ is a real verb and ن و م is a Quranic root, yet the Quran uses
+        #  it only as نَوْم and مَنَام.  Say that, rather than «not found».
+        if input_type in ('arabic', 'urdu', 'root'):
+            noun_only = self.root_without_verb(guessed)
+            if noun_only:
+                return {
+                    'found': False,
+                    'reason': 'root_no_verb',
+                    'message': message('not_found', lang),
+                    'input': cleaned,
+                    'guessed_root': noun_only['root'],
+                    'root_suggestions': [],
+                    'root_no_verb': noun_only,
+                    'did_you_mean': [],
+                }
+
         siblings = self.search_engine.search_root(guessed)
         if siblings:
             return {
@@ -191,7 +209,7 @@ class VerbAnalyzer:
                 'did_you_mean': self.suggest(cleaned, 4),
             }
 
-        # ---- 8. nothing matched — offer «کیا آپ کا مطلب یہ تھا؟» --------
+        # ---- 9. nothing matched — offer «کیا آپ کا مطلب یہ تھا؟» --------
         if input_type in ('arabic', 'urdu', 'root'):
             did_you_mean = self.suggest(cleaned)
             if did_you_mean:
@@ -508,6 +526,51 @@ class VerbAnalyzer:
                 'form': best['surface'],
             }
         return result
+
+    #: An اجوف verb hides its middle radical: نَامَ is ن و م, بَاعَ is ب ي ع.
+    #: A root guessed straight off the spelling therefore reads «ن ا م», and
+    #: the two real candidates have to be tried before concluding anything.
+    @staticmethod
+    def _root_candidates(root: str) -> list:
+        letters = (root or '').replace(' ', '')
+        out = [letters]
+        if len(letters) == 3 and letters[1] == 'ا':
+            out += [letters[0] + w + letters[2] for w in ('و', 'ي')]
+        return out
+
+    def root_without_verb(self, root: str) -> dict:
+        """A root the Quran uses, but never as a verb.
+
+        Distinguishing «this form is morphologically possible», «this is a real
+        lexical verb» and «this actually occurs in the Quran» is the whole
+        point.  نَامَ is a perfectly good Arabic verb, and ن و م is a Quranic
+        root — but the Quran only ever uses it as نَوْم، مَنَام، نَاۗىِٕمُوْنَ.
+        Saying exactly that is more use to a student, and more honest, than a
+        bare «not found» beside four unrelated verbs.
+        """
+        try:
+            from services import quran_source
+            provider = quran_source.get_islam360()
+            if not provider.configured:
+                return {}
+        except Exception:
+            return {}
+
+        for candidate in self._root_candidates(root):
+            spaced = ' '.join(candidate)
+            entry = provider.root_entry(spaced)
+            if not entry:
+                continue
+            # if the tagged morphology knows a verb here, this is not the case
+            if self.quran_index.by_root(candidate):
+                return {}
+            words = list(entry.get('words', {}))
+            if not words:
+                continue
+            return {'root': spaced, 'words': words[:14],
+                    'lughaat': entry.get('lughaat', ''),
+                    'source': 'Islam360'}
+        return {}
 
     def quranic_afaal_for_root(self, root: str) -> list:
         """Every Quranic verb of a root, grouped by باب."""

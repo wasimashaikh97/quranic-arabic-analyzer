@@ -190,6 +190,35 @@ def render_not_found(result: dict, lang: str):
     st.markdown('---')
     theme.notice(result.get('message', t('no_data', lang)))
 
+    # A root the Quran uses, but never as a verb.  نَامَ is a real Arabic verb
+    # and ن و م is a Quranic root, yet the Quran has only نَوْم، مَنَام،
+    # نَاۗىِٕمُوْنَ.  Saying precisely that beats a bare «not found».
+    no_verb = result.get('root_no_verb')
+    if no_verb:
+        theme.notice(
+            {'en': 'The root %s does occur in the Quran, but never as a verb. '
+                   'Its Quranic words, from Islam360, are below — no verb was '
+                   'constructed for it.',
+             'ar': 'المادة %s واردة في القرآن لكن لا كفعل.'}.get(
+                lang,
+                'یہ مادہ (%s) قرآن مجید میں آیا ہے، مگر فعل کے طور پر نہیں۔ '
+                'اسلام۳۶۰ کے مطابق اس کے قرآنی الفاظ نیچے ہیں — اس کا کوئی '
+                'فعل خود سے نہیں بنایا گیا۔') % no_verb['root'], 'info')
+        st.markdown(
+            '<div class="qa-card" dir="rtl" style="text-align:center;'
+            'line-height:2.4">%s</div>'
+            % ' &nbsp;·&nbsp; '.join(theme.esc(w) for w in no_verb['words']),
+            unsafe_allow_html=True)
+        if no_verb.get('lughaat'):
+            with st.expander('📗 %s' % {
+                    'en': 'Islam360 lexicon (لغات) for this root',
+                    'ar': 'لغات إسلام360'}.get(
+                    lang, 'اسلام۳۶۰ کی لغات — اس مادہ کی تشریح')):
+                st.markdown(
+                    '<div class="qa-card" dir="rtl" style="line-height:2.1">'
+                    '%s</div>' % theme.esc(no_verb['lughaat']),
+                    unsafe_allow_html=True)
+
     # «کیا آپ کا مطلب یہ تھا؟» — near misses drawn from verbs that really
     # occur in the Quran, so a misspelling leads somewhere instead of a
     # dead end.
