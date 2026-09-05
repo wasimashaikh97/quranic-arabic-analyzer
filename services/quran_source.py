@@ -1,42 +1,43 @@
 # -*- coding: utf-8 -*-
 """Where Quranic information comes from — and whether it is Islam360-verified.
 
-The specification requires that Quranic references, meanings and grammar be
-taken from **Islam360 only**, and that if authorized Islam360 access is not
-available the application must say so rather than quietly substitute another
-source or invent data.
+The specification requires Quranic references, verses, meanings and grammar to
+be taken from **Islam360 only**, and requires the application to say so plainly
+rather than substitute another source if Islam360 is unavailable.
 
-Current status: **NOT CONNECTED.**
+Islam360 publishes no API.  What it does have is a Windows app, and where that
+app is installed on the machine its data ships as XML, which
+``data/build_islam360_index.py`` reads locally into
+``data/islam360_index.json``:
 
-What was actually checked, on this machine, at build time:
+* ``QuranComplete.xml``  — 6,349 ayaat: Islam360's Arabic text and its own Urdu
+  and English translations, with its surah names
+* ``RootWords.xml``      — 77,877 Quranic words tagged with Islam360's own root,
+  and 2,284 لغات (lexicon) articles
 
-===========================  =========================================
-``islam360.com``             responds, but serves a domain-parking page
-                             ("ISLAM360.COM MAY BE AVAILABLE!") — it is
-                             not the app's site and carries no data
-``islam360.pk``              connection times out from this network
-``api.islam360.pk``          DNS does not resolve
-``quran.islam360.pk``        DNS does not resolve
-===========================  =========================================
+So verification has two possible states, and the interface reports whichever is
+true rather than assuming:
 
-There is no public, documented Islam360 data API, and no authorized dataset
-or credentials were supplied.  So :class:`Islam360Provider` is present and
-wired, but deliberately unimplemented: asking it for data raises
-:class:`Islam360NotConfigured` instead of returning something invented.
+``CONNECTED``
+    ``data/islam360_index.json`` is present.  Ayah text, translations, surah
+    names, roots and لغات all come from Islam360.
+``NOT CONNECTED``
+    The index is absent — the app is not installed here, or the data was not
+    built.  The application then falls back to its own corpus data **and says
+    so**, labelled with its real provenance.  Nothing is ever presented as
+    Islam360-verified when it is not.
 
-Meanwhile the Quranic material the application does show is labelled with its
-real provenance, never as Islam360:
-
-* **grammar** (root, باب, tense, voice, person/gender/number, and which forms
-  actually occur) — Quranic Arabic Corpus tagged morphology;
-* **ayah text** — Tanzil uthmani;
-* **translations** — Jalandhry (Urdu), Sahih International (English).
-
-To connect Islam360 later, implement the three methods of
-:class:`Islam360Provider` and set ``ACTIVE = Islam360Provider(...)``.  Nothing
-else in the application needs to change: it asks this module for the source
-label and the verification status, and renders whatever it is told.
+**Licensing.** The index holds Islam360's copyrighted content.  It is built
+locally and git-ignored on purpose: publishing it would be redistribution.  A
+public deployment therefore runs in the NOT CONNECTED state unless the operator
+has the right to ship that data.
 """
+
+import json
+import re
+from pathlib import Path
+
+INDEX_PATH = Path(__file__).parent.parent / 'data' / 'islam360_index.json'
 
 
 class Islam360NotConfigured(RuntimeError):
@@ -55,7 +56,7 @@ class QuranSource:
     def occurrences(self, root: str, baab=None) -> list:
         raise NotImplementedError
 
-    def grammar(self, surah: int, ayah: int, word: int) -> dict:
+    def grammar(self, root: str) -> dict:
         raise NotImplementedError
 
     def status(self) -> dict:
@@ -63,51 +64,118 @@ class QuranSource:
 
 
 class Islam360Provider(QuranSource):
-    """Islam360 — required by the specification, not reachable here.
-
-    Left deliberately unimplemented.  Returning data from anywhere else while
-    calling it Islam360 would be exactly the mislabelling the specification
-    forbids, so every method raises instead.
-    """
+    """Islam360, read from the locally installed app's own data."""
 
     name = 'Islam360'
     islam360_verified = True
 
-    #: what was probed, so the claim in the interface is checkable
-    PROBED = {
-        'islam360.com': 'domain-parking page, no data',
-        'islam360.pk': 'connection timed out',
-        'api.islam360.pk': 'DNS does not resolve',
-        'quran.islam360.pk': 'DNS does not resolve',
-    }
+    def __init__(self, index_path: Path = None):
+        self.index_path = Path(index_path or INDEX_PATH)
+        self._data = None
 
-    def __init__(self, api_key: str = None, base_url: str = None,
-                 dataset_path: str = None):
-        self.api_key = api_key
-        self.base_url = base_url
-        self.dataset_path = dataset_path
-
+    # -- loading --------------------------------------------------------
     @property
     def configured(self) -> bool:
-        return bool(self.api_key or self.dataset_path)
+        return self.index_path.exists()
 
-    def _require(self):
-        raise Islam360NotConfigured(
-            'Islam360 verification is blocked because authorized Islam360 '
-            'data/API access is not available in the current environment.')
+    @property
+    def data(self) -> dict:
+        if self._data is None:
+            if not self.configured:
+                raise Islam360NotConfigured(BLOCKED_REASON)
+            try:
+                self._data = json.loads(
+                    self.index_path.read_text(encoding='utf-8'))
+            except (json.JSONDecodeError, OSError) as exc:
+                raise Islam360NotConfigured(
+                    'Islam360 index could not be read: %s' % exc)
+        return self._data
 
-    def ayah(self, surah, ayah):
-        self._require()
+    # -- queries --------------------------------------------------------
+    #: Islam360's mushaf text carries the printed رکوع marker — a lone
+    #: trailing digit (Arabic-Indic or Latin) that is typography, not part of
+    #: the ayah.  It is dropped for display; nothing else in the text is
+    #: touched.
+    _RUKU_MARKER = re.compile(r'[\s۝]*[0-9٠-٩۰-۹]+\s*$')
 
-    def occurrences(self, root, baab=None):
-        self._require()
+    #: Islam360 names a surah «سورة الحجر»; the corpus names it «الحجر», and
+    #: every renderer already writes the word «سورۃ» itself.  Strip the
+    #: prefix so both sources hand back the same bare name and no caller
+    #: prints it twice.
+    _SURAH_PREFIX = re.compile(r'^\s*سور[ةهۃ]\s+')
 
-    def grammar(self, surah, ayah, word):
-        self._require()
+    def ayah(self, surah, ayah) -> dict:
+        """Islam360's own text and translations for one ayah."""
+        record = self.data.get('ayat', {}).get('%s:%s' % (surah, ayah))
+        if not record:
+            return {}
+        return {
+            'arabic_text': self._RUKU_MARKER.sub('', record.get('ar', '')),
+            'translation_urdu': record.get('ur', ''),
+            'translation_english': record.get('en', ''),
+            'surah_name_arabic': self._SURAH_PREFIX.sub(
+                '', record.get('surah_ur', '')),
+            'surah_name_english': record.get('surah_en', ''),
+            'surah_number': surah,
+            'ayah_number': ayah,
+            'source': 'Islam360',
+        }
+
+    def root_entry(self, root: str) -> dict:
+        """Islam360's record for a root: its Quranic words and its لغات."""
+        roots = self.data.get('roots', {})
+        if root in roots:
+            return roots[root]
+        # tolerate spacing differences between «ن ز ل» and «نزل»
+        squashed = (root or '').replace(' ', '')
+        for key, value in roots.items():
+            if key.replace(' ', '') == squashed:
+                return value
+        return {}
+
+    def occurrences(self, root: str, baab=None, limit: int = 8) -> list:
+        """Where the words of this root occur, with Islam360's ayah text."""
+        entry = self.root_entry(root)
+        if not entry:
+            return []
+        out = []
+        for word, places in entry.get('words', {}).items():
+            for surah, ayah in places:
+                record = self.ayah(surah, ayah)
+                if not record:
+                    continue
+                record['highlighted_word'] = word
+                out.append(record)
+                if len(out) >= limit:
+                    return out
+        return out
+
+    def grammar(self, root: str) -> dict:
+        """Islam360's لغات article for a root."""
+        entry = self.root_entry(root)
+        return {'lughaat': entry.get('lughaat', ''),
+                'word_count': len(entry.get('words', {})),
+                'source': 'Islam360'} if entry else {}
+
+    def roots_for_word(self, word_key: str) -> list:
+        return self.data.get('words', {}).get(word_key, [])
+
+    def status(self) -> dict:
+        if not self.configured:
+            return {'name': self.name, 'islam360_verified': False}
+        meta = self.data.get('meta', {})
+        return {
+            'name': self.name,
+            'islam360_verified': True,
+            'ayat': meta.get('ayat'),
+            'roots': meta.get('roots'),
+            'word_entries': meta.get('word_entries'),
+            'package': meta.get('package', ''),
+        }
 
 
 class LocalCorpusProvider(QuranSource):
-    """What the application actually ships with, labelled truthfully."""
+    """The fallback, labelled truthfully — used only when Islam360 is absent."""
 
     name = 'Quranic Arabic Corpus (grammar) + Tanzil (text)'
     islam360_verified = False
@@ -120,39 +188,67 @@ class LocalCorpusProvider(QuranSource):
     }
 
     def status(self) -> dict:
-        return {
-            'name': self.name,
-            'islam360_verified': False,
-            'sources': self.SOURCES,
-        }
+        return {'name': self.name, 'islam360_verified': False,
+                'sources': self.SOURCES}
 
 
-#: the provider in use.  Swap in a configured Islam360Provider to switch.
-ACTIVE = LocalCorpusProvider()
+BLOCKED_REASON = (
+    'Islam360 verification is blocked because authorized Islam360 data/API '
+    'access is not available in the current environment.')
 
 ISLAM360_BLOCKED_MESSAGE = {
     'ur': ('اسلام۳۶۰ سے تصدیق نہیں کی جا سکی — اس ماحول میں اسلام۳۶۰ کے مستند '
-           'ڈیٹا یا API تک رسائی دستیاب نہیں۔ ذیل کی قرآنی معلومات کے اصل '
-           'مآخذ نیچے درج ہیں۔'),
-    'en': ('Islam360 verification is blocked because authorized Islam360 '
-           'data/API access is not available in the current environment. '
-           'The actual source of the Quranic material shown is listed below.'),
+           'ڈیٹا تک رسائی دستیاب نہیں۔ ذیل کی قرآنی معلومات کے اصل مآخذ نیچے '
+           'درج ہیں۔'),
+    'en': (BLOCKED_REASON + ' The actual source of the Quranic material shown '
+           'is listed below.'),
     'ar': ('تعذّر التحقق من إسلام360 لعدم توفر وصول مصرّح به إلى بياناته في '
            'هذه البيئة. المصادر الفعلية مذكورة أدناه.'),
 }
+
+ISLAM360_OK_MESSAGE = {
+    'ur': 'قرآنی معلومات اسلام۳۶۰ سے لی گئی ہیں (اسی کمپیوٹر پر نصب ایپ سے)۔',
+    'en': 'Quranic material verified against Islam360 (the app installed on '
+          'this computer).',
+    'ar': 'المعلومات القرآنية مأخوذة من إسلام360 المثبّت على هذا الجهاز.',
+}
+
+
+def _pick_active():
+    provider = Islam360Provider()
+    return provider if provider.configured else LocalCorpusProvider()
+
+
+#: the provider in use — Islam360 when its data is present, else the fallback
+ACTIVE = _pick_active()
+
+
+def refresh():
+    """Re-check for the Islam360 index (used after building it)."""
+    global ACTIVE
+    ACTIVE = _pick_active()
+    return ACTIVE
+
+
+def get_islam360():
+    """The Islam360 provider, whether or not it is currently configured."""
+    return ACTIVE if isinstance(ACTIVE, Islam360Provider) else Islam360Provider()
 
 
 def verification_status(lang: str = 'ur') -> dict:
     """What the interface should display about Quranic provenance."""
     active = ACTIVE
-    islam360 = Islam360Provider()
-    return {
-        'islam360_verified': bool(getattr(active, 'islam360_verified', False)
-                                  and getattr(active, 'configured', False)),
-        'islam360_configured': islam360.configured,
-        'blocked_message': ISLAM360_BLOCKED_MESSAGE.get(
-            lang, ISLAM360_BLOCKED_MESSAGE['ur']),
+    verified = bool(getattr(active, 'islam360_verified', False)
+                    and getattr(active, 'configured', False))
+    status = {
+        'islam360_verified': verified,
+        'islam360_configured': verified,
         'active_source': active.name,
         'sources': getattr(active, 'SOURCES', {}),
-        'probed': Islam360Provider.PROBED,
+        'blocked_message': ISLAM360_BLOCKED_MESSAGE.get(
+            lang, ISLAM360_BLOCKED_MESSAGE['ur']),
+        'ok_message': ISLAM360_OK_MESSAGE.get(lang, ISLAM360_OK_MESSAGE['ur']),
     }
+    if verified:
+        status.update(active.status())
+    return status

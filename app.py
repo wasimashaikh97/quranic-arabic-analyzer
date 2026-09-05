@@ -343,7 +343,7 @@ def render_verb_page(analyzer, pdf_gen, result: dict, lang: str):
     # ---- ⑧ قرآن مجید میں استعمال ----------------------------------------
     ayaat = result.get('quranic_usage') or []
     with _section('⑧', '%s (%d)' % (t('nav_quran', lang), len(ayaat)), lang):
-        render_quranic(ayaat, lang)
+        render_quranic(ayaat, lang, result.get('islam360_lughaat'))
 
     # ---- PDF ------------------------------------------------------------
     st.markdown('---')
@@ -396,30 +396,84 @@ def render_afaal(analyzer, verb: dict, lang: str):
                     open_verb(v)
 
 
-def render_quranic(usage: list, lang: str):
-    # Provenance first, and truthfully.  The specification asks for Islam360
-    # only; Islam360 is not reachable here, so the panel says so and names the
-    # sources actually used rather than implying a verification never done.
+def render_quranic(usage: list, lang: str, lughaat: dict = None):
+    # Provenance first, and truthfully: whichever of the two states is actually
+    # true.  Islam360 when its data is present, otherwise the fallback named
+    # openly — never a verification that was not performed.
     status = quran_source.verification_status(lang)
-    if not status['islam360_verified']:
+    if status['islam360_verified']:
+        theme.notice('%s  —  %s آیات · %s مادے'
+                     % (status['ok_message'], status.get('ayat', ''),
+                        status.get('roots', '')), 'info')
+        # Islam360 indexes by root; it does not tag صیغہ.  Say which part of
+        # what follows is its and which is the tagged morphology's.
+        theme.notice(
+            {'en': 'Verse text, surah names and both translations are '
+                   'Islam360’s. The صیغہ label under each verse is from '
+                   'the tagged morphology — Islam360 does not tag صیغہ.',
+             'ar': 'نصّ الآية والترجمتان من إسلام360؛ وسم الصيغة من التحليل '
+                   'الصرفي.'}.get(
+                lang,
+                'آیت کا متن، سورۃ کے نام اور دونوں ترجمے اسلام۳۶۰ کے ہیں۔ '
+                'ہر آیت کے نیچے صیغے کی شناخت صرفی تجزیے سے ہے — اسلام۳۶۰ '
+                'صیغہ متعین نہیں کرتا۔'), 'info')
+    else:
         srcs = ' · '.join('%s: %s' % (k, v)
                           for k, v in (status.get('sources') or {}).items())
         theme.notice('%s\n\n%s' % (status['blocked_message'], srcs))
+
+    # Islam360's own لغات article for the root, when it has one
+    if lughaat and lughaat.get('lughaat'):
+        with st.expander('📗 %s' % {'en': 'Islam360 lexicon (لغات) for this root',
+                                    'ar': 'لغات إسلام360'}.get(
+                lang, 'اسلام۳۶۰ کی لغات — اس مادہ کی تشریح')):
+            st.markdown(
+                '<div class="qa-card" dir="rtl" style="line-height:2.1">%s</div>'
+                % theme.esc(lughaat['lughaat']), unsafe_allow_html=True)
 
     if not usage:
         theme.notice('اس فعل کا قرآن مجید میں کوئی مستند استعمال ہمارے ریکارڈ '
                      'میں نہیں ملا۔', 'info')
         return
+
+    # Two different claims, kept apart on purpose.  «This verb occurs here» is
+    # only said of occurrences the tagged morphology attests.  A root-level
+    # listing is Islam360's own but is not صیغہ-analysed and holds other words
+    # of the same root, so it never stands in for the verb: the honest answer
+    # («this verb is not attested») comes first, and the root listing is
+    # offered separately, folded away, for whoever wants it.
+    root_level = [ex for ex in usage if ex.get('root_level')]
+    attested = [ex for ex in usage if not ex.get('root_level')]
+
+    if attested:
+        _render_ayaat(attested)
+
+    if root_level:
+        if not attested:
+            theme.notice('اس فعل (اسی باب میں) کا قرآن مجید میں کوئی مستند '
+                         'استعمال نہیں ملا۔', 'info')
+        with st.expander('📖 %s' % {
+                'en': 'Other words of this root in the Quran (Islam360) — '
+                      'not صیغہ-analysed',
+                'ar': 'كلمات أخرى من هذه المادة (إسلام360)'}.get(
+                lang, 'اسی مادہ کے دوسرے قرآنی الفاظ (اسلام۳۶۰) — '
+                      'ان کا صیغہ متعین نہیں کیا گیا')):
+            _render_ayaat(root_level)
+
+
+def _render_ayaat(usage: list):
+    """One ayah card per occurrence, in the section's existing card style."""
     for ex in usage:
         sigha = ex.get('sigha_urdu', '')
-        if not ex.get('form_certain', True):
+        if sigha and not ex.get('form_certain', True):
             sigha += ' (احتمالاً)'
+        sigha_html = ('&nbsp;·&nbsp; %s' % theme.esc(sigha)) if sigha else ''
         st.markdown(
             f"""<div class="qa-card" dir="rtl">
               <div class="qa-ayah-ref">سورۃ {theme.esc(ex.get('surah_name_arabic',''))}
                   ({theme.esc(ex.get('surah_number',''))}:{theme.esc(ex.get('ayah_number',''))})
                   &nbsp;·&nbsp; <b>{theme.esc(ex.get('highlighted_word',''))}</b>
-                  &nbsp;·&nbsp; {theme.esc(sigha)}</div>
+                  {sigha_html}</div>
               <div class="qa-ayah">{theme.esc(ex.get('arabic_text',''))}</div>
               <div class="qa-ayah-ur">{theme.esc(ex.get('translation_urdu',''))}</div>
               <div class="qa-ayah-en">{theme.esc(ex.get('translation_english',''))}</div>
@@ -446,7 +500,10 @@ def render_pdf(pdf_gen, result: dict, lang: str):
             '📚 %s' % t('pdf_detailed', lang),
             data=pdf_gen.generate_study_sheet(
                 verb_data=verb, conjugations=conj,
-                quranic_data=result.get('quranic_usage'),
+                # only occurrences of this verb itself: the root-level
+                # listing carries a caveat the printed sheet cannot show
+                quranic_data=[ex for ex in (result.get('quranic_usage') or [])
+                              if not ex.get('root_level')],
                 root_info=result.get('root_info'), baab=result.get('baab'),
                 afaal=result.get('afaal')),
             file_name='%s_detailed.pdf' % name, mime='application/pdf',

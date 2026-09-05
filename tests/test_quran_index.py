@@ -189,33 +189,86 @@ class TestDidYouMean(Base):
 
 # ===========================================================================
 class TestIslam360Status(Base):
-    """Islam360 is required but unreachable — say so, never fake it."""
+    """Islam360 status must reflect reality — connected or not, never faked.
 
-    def test_islam360_reports_blocked(self):
+    Whether it is connected depends on the machine: the index is built from the
+    locally installed Islam360 app and is git-ignored because the data is
+    copyrighted.  So these assert the *consistency* of whichever state holds,
+    which is the property that actually matters.
+    """
+
+    def setUp(self):
         from services import quran_source
-        status = quran_source.verification_status('ur')
-        self.assertFalse(status['islam360_verified'])
-        self.assertIn('اسلام', status['blocked_message'])
+        self.qs = quran_source
+        self.status = quran_source.verification_status('ur')
 
-    def test_islam360_provider_refuses_to_invent(self):
+    def test_status_matches_whether_the_index_exists(self):
+        from pathlib import Path
+        from services.quran_source import INDEX_PATH
+        self.assertEqual(self.status['islam360_verified'],
+                         Path(INDEX_PATH).exists())
+
+    def test_message_matches_the_state(self):
+        if self.status['islam360_verified']:
+            self.assertIn('اسلام', self.status['ok_message'])
+            self.assertEqual(self.status['active_source'], 'Islam360')
+        else:
+            self.assertIn('اسلام', self.status['blocked_message'])
+            self.assertNotIn('Islam360', self.status['active_source'])
+
+    def test_provider_refuses_to_invent_when_unconfigured(self):
         from services.quran_source import (Islam360Provider,
                                            Islam360NotConfigured)
-        provider = Islam360Provider()
+        provider = Islam360Provider(index_path='/nonexistent/islam360.json')
         self.assertFalse(provider.configured)
-        for call in (lambda: provider.ayah(1, 1),
-                     lambda: provider.occurrences('نزل'),
-                     lambda: provider.grammar(1, 1, 1)):
-            with self.assertRaises(Islam360NotConfigured):
-                call()
+        with self.assertRaises(Islam360NotConfigured):
+            provider.ayah(1, 1)
+        with self.assertRaises(Islam360NotConfigured):
+            provider.grammar('ن ز ل')
 
-    def test_active_source_is_labelled_truthfully(self):
-        from services import quran_source
-        status = quran_source.verification_status('en')
-        self.assertNotIn('Islam360', status['active_source'])
-        self.assertIn('grammar', status['sources'])
-
-    def test_index_metadata_does_not_claim_islam360(self):
+    def test_corpus_index_never_claims_islam360(self):
         self.assertFalse(self.index.meta.get('islam360_verified', False))
+
+
+@unittest.skipUnless(
+    __import__('services.quran_source', fromlist=['x']).ACTIVE.islam360_verified,
+    'Islam360 app data is not present on this machine')
+class TestIslam360Data(Base):
+    """When Islam360 is connected, its data must actually be used."""
+
+    def setUp(self):
+        from services import quran_source
+        self.provider = quran_source.get_islam360()
+
+    def test_ayah_comes_from_islam360(self):
+        ayah = self.provider.ayah(97, 1)
+        self.assertTrue(ayah['arabic_text'])
+        self.assertTrue(ayah['translation_urdu'])
+        self.assertTrue(ayah['translation_english'])
+        self.assertEqual(ayah['source'], 'Islam360')
+
+    def test_root_lookup_and_lughaat(self):
+        entry = self.provider.grammar('ن ز ل')
+        self.assertTrue(entry.get('lughaat'), 'no لغات for ن ز ل')
+        self.assertGreater(entry.get('word_count', 0), 10)
+
+    def test_occurrences_carry_text_and_translation(self):
+        occs = self.provider.occurrences('ن ز ل', limit=4)
+        self.assertTrue(occs)
+        for occ in occs:
+            self.assertTrue(occ['arabic_text'])
+            self.assertTrue(occ['translation_urdu'])
+            self.assertTrue(1 <= int(occ['surah_number']) <= 114)
+
+    def test_analyzer_prefers_islam360_for_ayaat(self):
+        res = self.analyzer.analyze_verb('أَنْزَلَ')
+        usage = res.get('quranic_usage') or []
+        self.assertTrue(usage)
+        self.assertEqual(usage[0].get('source'), 'Islam360')
+
+    def test_analyzer_exposes_lughaat(self):
+        res = self.analyzer.analyze_verb('أَنْزَلَ')
+        self.assertTrue((res.get('islam360_lughaat') or {}).get('lughaat'))
 
 
 if __name__ == '__main__':

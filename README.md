@@ -169,11 +169,13 @@ The specification requires Quranic references, meanings and grammar to come
 from **Islam360 only**, and requires the application to say so plainly if
 authorized access is unavailable rather than substitute another source.
 
-> **Islam360 verification: NOT CONNECTED.**
-> Islam360 verification is blocked because authorized Islam360 data/API access
-> is not available in this environment.
+> **Islam360 verification: CONNECTED on this machine.**
+> Quranic verse text, surah names and both translations come from the Islam360
+> Universal app installed on this computer.
 
-What was actually probed from this machine:
+### How it connects
+
+Islam360 publishes no API — the network was probed and there is nothing to call:
 
 | host | result |
 |---|---|
@@ -182,16 +184,54 @@ What was actually probed from this machine:
 | `api.islam360.pk` | DNS does not resolve |
 | `quran.islam360.pk` | DNS does not resolve |
 
-There is no public documented Islam360 API and no dataset or credentials were
-supplied. `services/quran_source.py` therefore ships `Islam360Provider`
-**deliberately unimplemented**: every method raises `Islam360NotConfigured`
-rather than returning data from elsewhere under an Islam360 label. The
-Quranic panel in the app states the status and names the real sources.
+What Islam360 *does* have is a Windows app, and where it is installed its data
+ships as XML. `data/build_islam360_index.py` reads that folder read-only and
+writes `data/islam360_index.json`:
 
-To connect it later, implement that class's three methods and set
-`ACTIVE = Islam360Provider(...)`. Nothing else needs to change.
+```
+C:\Program Files\WindowsApps\48071ZahidHussainChihpa.Islam360Universal_…\XmlFiles\
+    QuranComplete.xml   →  6,349 ayaat: Islam360's Arabic, Urdu, English, surah names
+    RootWords.xml       →  2,296 roots, 15,749 words, 2,284 لغات articles
+```
 
-**The sources actually used, labelled truthfully in the app:**
+Run it once after installing the app:
+
+```bash
+python data/build_islam360_index.py
+```
+
+`services/quran_source.py` picks its provider from what is present: the
+Islam360 index when it exists, otherwise the labelled fallback. Nothing is
+ever presented as Islam360-verified when it is not.
+
+### What Islam360 answers, and what it does not
+
+Islam360 indexes by **root**. It does not tag صیغہ, and asking it for "every
+word of this root" returns the wrong words — searching تَقَبَّلَ would come
+back showing the preposition قَبْلِكَ. So the two questions are kept apart:
+
+| question | answered by |
+|---|---|
+| which words in the Quran belong to *this verb* | Quranic Arabic Corpus tagged morphology |
+| what صیغہ each occurrence is | Quranic Arabic Corpus tagged morphology |
+| the verse text, and the surah's name | **Islam360** |
+| the Urdu and English meanings | **Islam360** |
+| the root's لغات article | **Islam360** |
+
+The Quranic panel says this on screen rather than leaving it implied. Where a
+verb has no attested occurrence in its باب, the app says so plainly and offers
+Islam360's root-wide word list separately, folded away and labelled as *not*
+صیغہ-analysed — it never stands in for the verb.
+
+### Licensing
+
+`data/islam360_index.json` holds Islam360's copyrighted content. It is built
+locally and **git-ignored on purpose**: publishing it would be redistribution.
+A public deployment therefore runs in the NOT CONNECTED state — falling back to
+the sources below, named openly in the app — unless the operator has the right
+to ship that data.
+
+**The fallback, labelled truthfully in the app when Islam360 is absent:**
 
 | what | source |
 |---|---|

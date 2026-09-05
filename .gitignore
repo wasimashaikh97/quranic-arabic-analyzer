@@ -25,3 +25,6 @@ Thumbs.db
 
 # Quran corpus used only at build time by data/build_quran_index.py
 data/quran_cache/
+
+# Islam360 app data indexed locally — copyrighted, must not be redistributed
+data/islam360_index.json

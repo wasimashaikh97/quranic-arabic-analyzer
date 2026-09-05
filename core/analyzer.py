@@ -311,6 +311,132 @@ class VerbAnalyzer:
                         'باقی صورتیں خود سے نہیں بنائی گئیں۔')
         return ' '.join(bits)
 
+    def islam360_enrich(self, occurrences: list, root: str = '') -> list:
+        """Put Islam360's own ayah text and translations onto occurrences.
+
+        The specification asks for Quranic references, verses and meanings to
+        come from Islam360.  Islam360's data is indexed by root, not parsed
+        morphologically, so it cannot say which صیغہ a word is — and asking it
+        for «every word of the root» returns the wrong words entirely
+        (تَقَبَّلَ would come back showing the preposition قَبْلِكَ).
+
+        So which words belong to the searched verb stays a morphology question,
+        answered by the tagged corpus, and Islam360 answers the questions it
+        actually holds the answers to: the verse text, the surah name, the Urdu
+        and English meanings, and whether it lists that word under this root.
+        Each occurrence records which parts came from where.  When Islam360 is
+        not connected the occurrences pass through untouched.
+        """
+        if not occurrences:
+            return occurrences
+        try:
+            from services import quran_source
+            from .quran_index import key_bare
+            provider = quran_source.get_islam360()
+            if not provider.configured:
+                return occurrences
+        except Exception:
+            return occurrences
+
+        target = key_bare(root)
+        for occ in occurrences:
+            try:
+                record = provider.ayah(occ.get('surah_number'),
+                                       occ.get('ayah_number'))
+            except Exception:
+                record = None
+            if not record:
+                continue
+            occ['arabic_text'] = record.get('arabic_text') or occ.get('arabic_text', '')
+            occ['surah_name_arabic'] = (record.get('surah_name_arabic')
+                                        or occ.get('surah_name_arabic', ''))
+            occ['surah_name_english'] = (record.get('surah_name_english')
+                                         or occ.get('surah_name_english', ''))
+            occ['translation_urdu'] = record.get('translation_urdu', '')
+            occ['translation_english'] = record.get('translation_english', '')
+            occ['text_source'] = 'Islam360'
+            occ['source'] = 'Islam360'
+            try:
+                roots = provider.roots_for_word(
+                    key_bare(occ.get('highlighted_word', '')))
+                occ['islam360_root_match'] = any(
+                    key_bare(r) == target for r in roots) if target else False
+            except Exception:
+                occ['islam360_root_match'] = False
+        return occurrences
+
+    def islam360_occurrences(self, root: str, limit: int = 6) -> list:
+        """Every Quranic word of a root, straight from Islam360.
+
+        Islam360 groups by root, so this is a root-level listing — it is *not*
+        صیغہ-analysed and may include nouns and other abwaab of the same root.
+        Used only as a labelled last resort when the tagged corpus has no
+        occurrence for the verb itself, never as a substitute for it.
+        """
+        try:
+            from services import quran_source
+            provider = quran_source.get_islam360()
+            if not provider.configured:
+                return []
+            out = []
+            for record in provider.occurrences(root, limit=limit):
+                out.append({
+                    'verb_id': '',
+                    'root': root,
+                    'surah_number': record.get('surah_number'),
+                    'ayah_number': record.get('ayah_number'),
+                    'surah_name_arabic': record.get('surah_name_arabic', ''),
+                    'surah_name_english': record.get('surah_name_english', ''),
+                    'arabic_text': record.get('arabic_text', ''),
+                    'highlighted_word': record.get('highlighted_word', ''),
+                    'word_form': '',
+                    'sigha_urdu': '',
+                    'sigha_english': '',
+                    'pronoun_arabic': '',
+                    'form_certain': False,
+                    'root_level': True,
+                    'translation_urdu': record.get('translation_urdu', ''),
+                    'translation_english': record.get('translation_english', ''),
+                    'text_source': 'Islam360',
+                    'source': 'Islam360',
+                })
+            return out
+        except Exception:
+            return []
+
+    def quranic_usage_for(self, verb: dict) -> list:
+        """This verb's own Quranic occurrences, with Islam360 text on top.
+
+        Order of preference, most precise first: the curated occurrence data,
+        then the tagged corpus entry for this exact (root, باب).  Both know the
+        صیغہ.  Islam360's root-level listing is the labelled last resort.
+        """
+        root = verb.get('root', '')
+        usage = self.get_quranic_usage(verb.get('id')) or []
+        if not usage:
+            entry = None
+            try:
+                entry = self.quran_index.get_by_root_baab(root,
+                                                          verb.get('baab'))
+            except Exception:
+                entry = None
+            if entry:
+                usage = self.quranic_occurrences(entry)
+        if usage:
+            return self.islam360_enrich(usage, root)
+        return self.islam360_occurrences(root)
+
+    def islam360_lughaat(self, root: str) -> dict:
+        """Islam360's own لغات (lexicon) article for a root."""
+        try:
+            from services import quran_source
+            provider = quran_source.get_islam360()
+            if not provider.configured:
+                return {}
+            return provider.grammar(root) or {}
+        except Exception:
+            return {}
+
     def quranic_occurrences(self, entry: dict) -> list:
         """Occurrences shaped like the existing Quranic section expects."""
         from .quran_index import describe_parse, PGN_UR, PGN_EN
@@ -357,7 +483,9 @@ class VerbAnalyzer:
             'baab': self.get_baab_info(record['baab']),
             'root_info': self.get_root_info(record['root']),
             'afaal': self.get_afaal_for_root(record['root']),
-            'quranic_usage': self.quranic_occurrences(entry),
+            'quranic_usage': self.islam360_enrich(
+                self.quranic_occurrences(entry), record['root']),
+            'islam360_lughaat': self.islam360_lughaat(record['root']),
             'analysis_type': 'quran_index',
             'match_quality': best['match'],
             'confidence': 'high' if best['match'].endswith('exact') else 'medium',
@@ -418,7 +546,8 @@ class VerbAnalyzer:
             'baab': self.get_baab_info(verb.get('baab', 1)),
             'root_info': self.get_root_info(root),
             'afaal': self.get_afaal_for_root(root),
-            'quranic_usage': self.get_quranic_usage(verb.get('id')),
+            'quranic_usage': self.quranic_usage_for(verb),
+            'islam360_lughaat': self.islam360_lughaat(root),
             'analysis_type': analysis_type,
             'match_quality': quality,
             'confidence': 'high' if quality in ('exact', 'vowelless') else 'medium',
