@@ -134,6 +134,42 @@ class TestNoInvention(Base):
                 self.assertIsNone(record['past_passive_3ms'],
                                   entry['headword'])
 
+    def test_ambiguous_spelling_keeps_every_reading(self):
+        """يَعْلَمُ is the 3MS «اللَّهُ يَعْلَمُ» *and* the stem the corpus
+        splits out of the 3MP يَعْلَمُونَ.  Recording only whichever came
+        first reported the مضارع of عَلِمَ as unattested."""
+        entry = next(e for e in self.index.verbs
+                     if e['headword'] == 'عَلِمَ')
+        self.assertEqual(entry['principal'].get('present_active'), 'يَعْلَمُ')
+        readings = entry['segments']['يَعْلَمُ']
+        every = [(readings['tense'], readings['voice'], readings['pgn'])]
+        every += [tuple(a[:3]) for a in readings.get('alts', [])]
+        self.assertIn(('IMPF', 'ACT', '3MS'), every)
+        self.assertIn(('IMPF', 'ACT', '3MP'), every)
+
+    def test_no_attested_3ms_is_ever_dropped(self):
+        """A principal part may be absent only because no 3MS indicative of
+        that tense and voice occurs — never because it was overwritten."""
+        want = {'past_active': ('PERF', 'ACT'),
+                'present_active': ('IMPF', 'ACT'),
+                'past_passive': ('PERF', 'PASS'),
+                'present_passive': ('IMPF', 'PASS')}
+        for entry in self.index.verbs:
+            principal = entry.get('principal') or {}
+            for part, (tense, voice) in want.items():
+                if part in principal:
+                    continue
+                for form, seg in (entry.get('segments') or {}).items():
+                    reads = [(seg['tense'], seg['voice'], seg['pgn'],
+                              seg['mood'])]
+                    reads += [tuple(a) for a in seg.get('alts', [])]
+                    for t, v, pgn, mood in reads:
+                        self.assertFalse(
+                            t == tense and v == voice and pgn == '3MS'
+                            and mood in (None, 'IND'),
+                            '%s: %s is attested as %s but %s was left empty'
+                            % (entry['headword'], form, part, part))
+
     def test_cited_word_occurs_in_its_ayah(self):
         for entry in self.index.verbs[:200]:
             for occ in entry.get('occurrences', []):
@@ -204,9 +240,31 @@ class TestIslam360Status(Base):
 
     def test_status_matches_whether_the_index_exists(self):
         from pathlib import Path
-        from services.quran_source import INDEX_PATH
+        from services.quran_source import _configured_path
         self.assertEqual(self.status['islam360_verified'],
-                         Path(INDEX_PATH).exists())
+                         Path(_configured_path()).exists())
+
+    def test_operator_can_point_at_the_index_elsewhere(self):
+        """A deployment cannot ship the copyrighted index, so an operator who
+        may host it names its location instead of committing it."""
+        import os
+        from services import quran_source as qs
+        original = os.environ.get(qs.ENV_VAR)
+        try:
+            os.environ[qs.ENV_VAR] = str(qs.DEFAULT_INDEX_PATH)
+            self.assertEqual(qs._configured_path(), qs.DEFAULT_INDEX_PATH)
+
+            # a path that is not there must degrade, never raise
+            os.environ[qs.ENV_VAR] = str(Path(__file__).parent / 'nope.json')
+            qs.refresh()
+            self.assertFalse(qs.verification_status()['islam360_verified'])
+            self.assertIn('blocked_message', qs.verification_status())
+        finally:
+            if original is None:
+                os.environ.pop(qs.ENV_VAR, None)
+            else:
+                os.environ[qs.ENV_VAR] = original
+            qs.refresh()
 
     def test_message_matches_the_state(self):
         if self.status['islam360_verified']:

@@ -34,10 +34,40 @@ has the right to ship that data.
 """
 
 import json
+import os
 import re
 from pathlib import Path
 
-INDEX_PATH = Path(__file__).parent.parent / 'data' / 'islam360_index.json'
+#: Where the index lives by default — built locally, never committed.
+DEFAULT_INDEX_PATH = (Path(__file__).parent.parent / 'data'
+                      / 'islam360_index.json')
+
+#: A deployment cannot use the committed file, because the file is
+#: deliberately not committed.  An operator who holds the right to use
+#: Islam360's data on their own server points at it with this, and the app
+#: runs CONNECTED there without the data ever entering the repository::
+#:
+#:     ISLAM360_INDEX_PATH=/srv/private/islam360_index.json
+#:
+#: On Streamlit Cloud the same value can be set as a secret; anything absent
+#: or unreadable simply leaves the app in its honest NOT CONNECTED state.
+ENV_VAR = 'ISLAM360_INDEX_PATH'
+
+
+def _configured_path() -> Path:
+    """The index location: the operator's if they named one, else the default."""
+    override = (os.environ.get(ENV_VAR) or '').strip()
+    if not override:
+        try:                                    # Streamlit secrets, if present
+            import streamlit as st
+            override = str(st.secrets.get(ENV_VAR, '') or '').strip()
+        except Exception:
+            override = ''
+    return Path(override) if override else DEFAULT_INDEX_PATH
+
+
+#: kept for callers that import it by name
+INDEX_PATH = DEFAULT_INDEX_PATH
 
 
 class Islam360NotConfigured(RuntimeError):
@@ -70,7 +100,7 @@ class Islam360Provider(QuranSource):
     islam360_verified = True
 
     def __init__(self, index_path: Path = None):
-        self.index_path = Path(index_path or INDEX_PATH)
+        self.index_path = Path(index_path) if index_path else _configured_path()
         self._data = None
 
     # -- loading --------------------------------------------------------

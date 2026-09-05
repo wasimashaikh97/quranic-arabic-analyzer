@@ -227,9 +227,18 @@ Islam360's root-wide word list separately, folded away and labelled as *not*
 
 `data/islam360_index.json` holds Islam360's copyrighted content. It is built
 locally and **git-ignored on purpose**: publishing it would be redistribution.
-A public deployment therefore runs in the NOT CONNECTED state — falling back to
-the sources below, named openly in the app — unless the operator has the right
-to ship that data.
+
+A deployment therefore cannot read it from the repository — so an operator who
+*does* hold the right to use that data on their own server names its location
+instead of committing it:
+
+```bash
+ISLAM360_INDEX_PATH=/srv/private/islam360_index.json
+```
+
+On Streamlit Cloud the same key works as a secret. Anything absent or
+unreadable leaves the app in its honest NOT CONNECTED state, falling back to
+the sources below and naming them openly — it never fails and never pretends.
 
 **The fallback, labelled truthfully in the app when Islam360 is absent:**
 
