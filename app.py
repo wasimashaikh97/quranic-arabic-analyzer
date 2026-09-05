@@ -21,10 +21,12 @@ from core.analyzer import VerbAnalyzer                       # noqa: E402
 from core.conjugation import MANDATORY_TENSES                # noqa: E402
 from core.morphology import ArabicMorphology                 # noqa: E402
 from services.pdf_generator import PDFGenerator              # noqa: E402
+from services import quran_source                            # noqa: E402
 
 from ui import theme                                         # noqa: E402
 from ui.theme import t                                       # noqa: E402
 from ui.abwaab_view import render_abwaab_view                # noqa: E402
+from ui import keyboard                                      # noqa: E402
 
 EXAMPLES = ['أَنْزَلَ', 'كَتَبَ', 'قَالَ', 'دَعَا', 'عَلَّمَ', 'اِسْتَغْفَرَ']
 
@@ -58,8 +60,14 @@ def run_analysis(word: str):
         analyzer.record_study(result.get('verb', {}).get('id', ''))
 
 
+def queue_input(word: str):
+    """Put text in the search box and analyse it on the next run."""
+    st.session_state.pending_input = word
+    run_analysis(word)
+
+
 def open_verb(verb: dict):
-    run_analysis(verb.get('arabic', ''))
+    queue_input(verb.get('arabic', ''))
     st.rerun()
 
 
@@ -70,6 +78,7 @@ def main():
     _init_state()
     lang = st.session_state.lang
     theme.inject_css(st.session_state.font_scale, lang)
+    keyboard.inject_keyboard_css(st.session_state.font_scale)
 
     render_controls(lang)
 
@@ -133,18 +142,28 @@ def render_controls(lang: str):
 def render_home(analyzer, pdf_gen, lang: str):
     theme.header(lang)
 
+    # A widget's value cannot be assigned after the widget exists in the same
+    # run, so anything that wants to fill the box (an example chip, the
+    # on-screen keyboard) parks the text here and it is applied on the next
+    # run, before the box is drawn.
+    if st.session_state.get('pending_input') is not None:
+        st.session_state[keyboard.FIELD] = st.session_state.pop('pending_input')
+    st.session_state.setdefault(keyboard.FIELD, '')
+
     _, middle, _ = st.columns([1, 3, 1])
     with middle:
         with st.form('search_form'):
-            word = st.text_input(t('enter_verb', lang),
-                                 value=st.session_state.query,
-                                 placeholder='أَنْزَلَ', key='search_box')
+            st.text_input(t('enter_verb', lang), placeholder='أَنْزَلَ',
+                          key=keyboard.FIELD)
             submitted = st.form_submit_button(t('analyze', lang),
                                               use_container_width=True,
                                               type='primary')
         if submitted:
-            run_analysis(word)
+            run_analysis(st.session_state.get(keyboard.FIELD, ''))
             st.rerun()
+
+        # the on-screen Arabic keyboard, directly under the existing box
+        keyboard.render_keyboard(lang, on_search=queue_input)
 
         st.markdown(
             f'<div style="text-align:center;color:#4b5563;margin:10px 0 6px">'
@@ -153,7 +172,7 @@ def render_home(analyzer, pdf_gen, lang: str):
         for i, example in enumerate(EXAMPLES):
             if cols[i].button(example, key='ex_%s' % example,
                               use_container_width=True):
-                run_analysis(example)
+                queue_input(example)
                 st.rerun()
 
     result = st.session_state.result
@@ -170,6 +189,25 @@ def render_home(analyzer, pdf_gen, lang: str):
 def render_not_found(result: dict, lang: str):
     st.markdown('---')
     theme.notice(result.get('message', t('no_data', lang)))
+
+    # «کیا آپ کا مطلب یہ تھا؟» — near misses drawn from verbs that really
+    # occur in the Quran, so a misspelling leads somewhere instead of a
+    # dead end.
+    did_you_mean = result.get('did_you_mean') or []
+    if did_you_mean:
+        st.markdown('#### %s' % {'en': 'Did you mean?',
+                                 'ar': 'هل تقصد؟'}.get(
+            lang, 'کیا آپ کا مطلب یہ تھا؟'))
+        cols = st.columns(min(len(did_you_mean), 3))
+        for i, entry in enumerate(did_you_mean):
+            with cols[i % len(cols)]:
+                label = '%s — %s' % (entry.get('headword', ''),
+                                     entry.get('root_spaced', ''))
+                if st.button(label, key='dym_%d' % i,
+                             use_container_width=True):
+                    queue_input(entry.get('headword', ''))
+                    st.rerun()
+
     suggestions = result.get('root_suggestions') or []
     if suggestions:
         st.markdown('#### %s %s' % (t('try_these', lang),
@@ -359,6 +397,15 @@ def render_afaal(analyzer, verb: dict, lang: str):
 
 
 def render_quranic(usage: list, lang: str):
+    # Provenance first, and truthfully.  The specification asks for Islam360
+    # only; Islam360 is not reachable here, so the panel says so and names the
+    # sources actually used rather than implying a verification never done.
+    status = quran_source.verification_status(lang)
+    if not status['islam360_verified']:
+        srcs = ' · '.join('%s: %s' % (k, v)
+                          for k, v in (status.get('sources') or {}).items())
+        theme.notice('%s\n\n%s' % (status['blocked_message'], srcs))
+
     if not usage:
         theme.notice('اس فعل کا قرآن مجید میں کوئی مستند استعمال ہمارے ریکارڈ '
                      'میں نہیں ملا۔', 'info')

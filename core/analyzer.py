@@ -13,7 +13,23 @@ from .conjugation import (
     MANDATORY_TENSES,
 )
 from .search import VerbSearch
+
 from .validation import InputValidator, message
+
+#: surah names, read once from the cached list if it is present
+def _load_surah_names():
+    import json as _json
+    from pathlib import Path as _Path
+    p = _Path(__file__).parent.parent / 'data' / 'surah_names.json'
+    if p.exists():
+        try:
+            return {int(k): v for k, v in
+                    _json.loads(p.read_text(encoding='utf-8')).items()}
+        except Exception:
+            return {}
+    return {}
+
+SURAH_NAMES = _load_surah_names()
 
 
 class VerbAnalyzer:
@@ -33,6 +49,7 @@ class VerbAnalyzer:
         self.search_engine = VerbSearch(self.verbs, self.roots)
 
         self._verbs_by_id = {v.get('id'): v for v in self.verbs}
+        self._quran_index = None      # loaded on first use
         self._conjugation_cache = {}
         self._form_index_exact = {}
         self._form_index_strict = {}
@@ -151,7 +168,15 @@ class VerbAnalyzer:
                                     quality='meaning',
                                     alternatives=hits[1:9])
 
-        # ---- 7. verified verbs sharing the guessed root ----------------
+        # ---- 7. the complete Quranic verb index -------------------------
+        #  1,473 verbs that actually occur in the Quran, searchable by lemma,
+        #  by root, and by any inflected form the text contains.  Reached only
+        #  after the curated lexicon, which carries the fuller Sarf data.
+        if input_type in ('arabic', 'urdu', 'root'):
+            quranic = self.lookup_quranic(cleaned)
+            if quranic:
+                return self._quranic_result(quranic, cleaned, lang)
+
         guessed = self.search_engine.guess_root(cleaned)
         siblings = self.search_engine.search_root(guessed)
         if siblings:
@@ -162,7 +187,23 @@ class VerbAnalyzer:
                 'input': cleaned,
                 'guessed_root': guessed,
                 'root_suggestions': siblings[:12],
+                # near misses too, so the student always has somewhere to go
+                'did_you_mean': self.suggest(cleaned, 4),
             }
+
+        # ---- 8. nothing matched — offer «کیا آپ کا مطلب یہ تھا؟» --------
+        if input_type in ('arabic', 'urdu', 'root'):
+            did_you_mean = self.suggest(cleaned)
+            if did_you_mean:
+                return {
+                    'found': False,
+                    'reason': 'did_you_mean',
+                    'message': message('not_found', lang),
+                    'input': cleaned,
+                    'guessed_root': self.search_engine.guess_root(cleaned),
+                    'root_suggestions': [],
+                    'did_you_mean': did_you_mean,
+                }
 
         # Latin input that matched no meaning is almost always someone typing
         # in the wrong script — say so plainly instead of "no data".
@@ -171,6 +212,182 @@ class VerbAnalyzer:
                 'message': message(reason, lang),
                 'input': cleaned, 'guessed_root': guessed,
                 'root_suggestions': []}
+
+    # ==================================================================
+    # the complete Quranic verb index
+    # ==================================================================
+    @property
+    def quran_index(self):
+        """Lazily loaded, so start-up stays fast when it is not needed."""
+        if self._quran_index is None:
+            from .quran_index import QuranVerbIndex
+            self._quran_index = QuranVerbIndex()
+        return self._quran_index
+
+    def lookup_quranic(self, word: str) -> list:
+        try:
+            return self.quran_index.lookup(word)
+        except Exception:
+            return []
+
+    def suggest(self, word: str, limit: int = 6) -> list:
+        """«کیا آپ کا مطلب یہ تھا؟» over real Quranic verbs."""
+        try:
+            return self.quran_index.suggest(word, limit)
+        except Exception:
+            return []
+
+    def quranic_to_record(self, entry: dict) -> dict:
+        """Shape a Quranic index entry like a curated verb record.
+
+        The interface already knows how to render a verb, so a Quranic verb is
+        adapted into the same shape rather than given a second layout.  Fields
+        the Quran does not attest are left empty on purpose — the page then
+        shows «قابلِ اطلاق نہیں» instead of a manufactured form.
+        """
+        from .quran_index import PGN_UR, PGN_EN, describe_parse
+
+        baab = entry.get('baab') or 1
+        baab_info = get_baab(baab)
+        principal = entry.get('principal') or {}
+        root_spaced = entry.get('root_spaced') or ' '.join(entry.get('root', ''))
+
+        record = {
+            'id': 'q_%s_%s' % (entry.get('root', ''), baab),
+            'arabic': entry.get('headword', ''),
+            'root': root_spaced,
+            'root_letters': list(entry.get('root', '')),
+            'baab': baab,
+            'form': baab,
+            'baab_name_arabic': baab_info['name_ar'],
+            'baab_name_urdu': baab_info['name_ur'],
+            'baab_name_english': baab_info['name_en'],
+            'baab_category_urdu': baab_info['category_ur'],
+            'is_mazeed': baab_info['is_mazeed'],
+            'wazn': baab_info['wazn_past'],
+            'pattern': baab_info['wazn_past'],
+            'form_name_arabic': baab_info['wazn_past'],
+            'wazn_present': baab_info['wazn_present'],
+            'wazn_past_passive': baab_info['wazn_past_passive'],
+            'wazn_present_passive': baab_info['wazn_present_passive'],
+
+            # principal parts, ONLY where the Quran attests them
+            'past_3ms': principal.get('past_active'),
+            'present_3ms': principal.get('present_active'),
+            'past_passive_3ms': principal.get('past_passive'),
+            'present_passive_3ms': principal.get('present_passive'),
+            'has_passive': bool(principal.get('past_passive')),
+
+            'verb_type': ArabicMorphology.identify_verb_type(
+                list(entry.get('root', ''))),
+            'transitivity': '',
+            'masdar': None,
+            'masdar_pattern': baab_info['masdar_pattern'],
+            'ism_fail': None,
+            'ism_mafool': None,
+            'derived_nouns': {},
+            'meaning_urdu': '',
+            'meaning_english': '',
+
+            # provenance — this is a Quranic-corpus verb, not a curated one
+            'source': 'quran_index',
+            'quran_count': entry.get('count', 0),
+            'quran_forms': entry.get('surface_count', 0),
+            'headword_attested': entry.get('headword_attested', False),
+            'unavailable_note': self._quranic_note(entry),
+        }
+        return record
+
+    @staticmethod
+    def _quranic_note(entry: dict) -> str:
+        missing = [k for k in ('past_active', 'present_active')
+                   if k not in (entry.get('principal') or {})]
+        bits = ['یہ فعل قرآن مجید میں %d مرتبہ آیا ہے۔' % entry.get('count', 0)]
+        if not entry.get('headword_attested'):
+            bits.append('اس کی لغوی (ڈکشنری) صورت قرآن میں نہیں آئی، اس لیے '
+                        'یہاں قرآن میں موجود صورت دکھائی گئی ہے۔')
+        if missing:
+            bits.append('صرف وہی صیغے دکھائے گئے ہیں جو قرآن میں موجود ہیں؛ '
+                        'باقی صورتیں خود سے نہیں بنائی گئیں۔')
+        return ' '.join(bits)
+
+    def quranic_occurrences(self, entry: dict) -> list:
+        """Occurrences shaped like the existing Quranic section expects."""
+        from .quran_index import describe_parse, PGN_UR, PGN_EN
+        out = []
+        for occ in entry.get('occurrences', []):
+            out.append({
+                'verb_id': 'q_%s_%s' % (entry.get('root', ''),
+                                        entry.get('baab')),
+                'root': entry.get('root_spaced', ''),
+                'surah_number': occ.get('s'),
+                'ayah_number': occ.get('a'),
+                'surah_name_arabic': SURAH_NAMES.get(occ.get('s'), ''),
+                'surah_name_english': '',
+                'arabic_text': occ.get('text', ''),
+                'highlighted_word': occ.get('w', ''),
+                'word_form': occ.get('tense', ''),
+                'sigha_urdu': describe_parse(occ, 'ur'),
+                'sigha_english': describe_parse(occ, 'en'),
+                'pronoun_arabic': '',
+                'form_certain': True,
+                'translation_urdu': '',
+                'translation_english': '',
+            })
+        return out
+
+    def _quranic_result(self, hits: list, cleaned: str, lang: str) -> dict:
+        best = hits[0]
+        entry = best['entry']
+        record = self.quranic_to_record(entry)
+        conj = self.conjugate(record) if record.get('present_3ms') \
+            or record.get('past_3ms') else {k: [] for k in TENSE_ORDER}
+
+        alternatives = []
+        for h in hits[1:8]:
+            alternatives.append(self.quranic_to_record(h['entry']))
+
+        result = {
+            'found': True,
+            'verb': record,
+            'query': cleaned,
+            'conjugations': conj,
+            'available_tenses': [t for t in TENSE_ORDER if conj.get(t)],
+            'missing_tenses': [t for t in MANDATORY_TENSES if not conj.get(t)],
+            'baab': self.get_baab_info(record['baab']),
+            'root_info': self.get_root_info(record['root']),
+            'afaal': self.get_afaal_for_root(record['root']),
+            'quranic_usage': self.quranic_occurrences(entry),
+            'analysis_type': 'quran_index',
+            'match_quality': best['match'],
+            'confidence': 'high' if best['match'].endswith('exact') else 'medium',
+            'is_conjugated_form': best['match'].startswith('surface'),
+            'alternatives': alternatives,
+            'source': 'quran_index',
+            'quran_entry': entry,
+        }
+        if best.get('surface') and best.get('parse'):
+            from .quran_index import describe_parse
+            result['conjugated_info'] = {
+                'input_word': cleaned,
+                'base_verb': record['arabic'],
+                'root': record['root'],
+                'baab_name': record['baab_name_arabic'],
+                'tense_urdu': describe_parse(best['parse'], 'ur'),
+                'tense_english': describe_parse(best['parse'], 'en'),
+                'sigha_urdu': describe_parse(best['parse'], 'ur'),
+                'pronoun': '',
+                'form': best['surface'],
+            }
+        return result
+
+    def quranic_afaal_for_root(self, root: str) -> list:
+        """Every Quranic verb of a root, grouped by باب."""
+        bare = (root or '').replace(' ', '')
+        try:
+            return self.quran_index.by_root(bare)
+        except Exception:
+            return []
 
     def _conjugated_result(self, parsed: dict, cleaned: str) -> dict:
         verb = self._verbs_by_id.get(parsed['verb_id'], {})

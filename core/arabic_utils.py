@@ -37,6 +37,9 @@ ALEF_HAMZA_BELOW = 'إ'  # إ
 WAW_HAMZA = 'ؤ'       # ؤ
 YA_HAMZA = 'ئ'        # ئ
 HAMZA = 'ء'           # ء
+#: ٱ — alef wasla.  The Quran writes ٱهْدِنَا، ٱسْتَغْفَرَ with it while a
+#: student types ا, so it must fold to a plain alef for comparison.
+ALEF_WASLA = 'ٱ'      # ٱ
 TA_MARBUTA = 'ة'      # ة
 HA = 'ه'              # ه
 
@@ -114,7 +117,8 @@ def normalise_letters(text: str) -> str:
         return ''
     out = []
     for ch in text:
-        if ch in (HAMZA_ON_ALEF, ALEF_HAMZA_BELOW, ALEF_MADDA, HAMZA):
+        if ch in (HAMZA_ON_ALEF, ALEF_HAMZA_BELOW, ALEF_MADDA, HAMZA,
+                  ALEF_WASLA):
             out.append(ALEF)
         elif ch == ALEF_MAQSURA:
             out.append(YA)

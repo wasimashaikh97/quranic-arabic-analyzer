@@ -87,19 +87,40 @@ class TestSimplicity(unittest.TestCase):
         self.assertEqual(len(at.radio), 1)          # only the language switch
         self.assertIn('زبان', at.radio[0].label)
 
+    @staticmethod
+    def _chrome(at):
+        """Buttons that are page furniture, excluding the keyboard.
+
+        The on-screen keyboard is a required input aid and ships collapsed, so
+        its keys are not clutter the reader has to wade through; what these
+        guards protect against is navigation creeping back.
+        """
+        return [b for b in at.button if not str(b.key).startswith('kb_')]
+
     def test_home_button_count_is_small(self):
         """Home used to render 28 buttons; keep it lean."""
         at = fresh()
-        self.assertLessEqual(len(at.button), 14,
+        chrome = self._chrome(at)
+        self.assertLessEqual(len(chrome), 14,
                              'home has too many controls: %s'
-                             % [b.key for b in at.button])
+                             % [b.key for b in chrome])
 
     def test_result_button_count_is_small(self):
         """The result page used to render 42 buttons."""
         at = submit(fresh(), 'أَنْزَلَ')
-        self.assertLessEqual(len(at.button), 20,
+        chrome = self._chrome(at)
+        self.assertLessEqual(len(chrome), 20,
                              'result page has too many controls: %s'
-                             % [b.key for b in at.button])
+                             % [b.key for b in chrome])
+
+    def test_keyboard_is_collapsed_by_default(self):
+        """It must be available without being in the way."""
+        at = fresh()
+        kb = [e for e in at.expander if 'کی بورڈ' in str(e.label)
+              or 'keyboard' in str(e.label).lower()]
+        self.assertTrue(kb, 'the Arabic keyboard panel is missing')
+        self.assertFalse(kb[0].proto.expanded,
+                         'the keyboard should start closed')
 
     def test_removed_features_are_gone(self):
         at = fresh()
