@@ -44,12 +44,13 @@ Both JSON files are **generated**:
 ```bash
 python data/build_lexicon.py                    # verbs.json + roots.json
 python data/build_quran_index.py --download     # quranic_occurrences.json
+python data/build_quran_verb_index.py --download # quran_verbs.json (the index)
 ```
 
 ## Tests
 
 ```bash
-python -m unittest tests.test_analyzer tests.test_ui     # 120 tests
+python -m unittest tests.test_analyzer tests.test_ui tests.test_quran_index   # 149 tests
 ```
 
 ---
@@ -80,6 +81,125 @@ and Sahih International (English).
 
 **Coverage:** 84 verified verbs · 51 roots · 9 ابواب · 288 Quranic ayaat across
 65 verbs · 281 of those labelled with the exact صیغہ.
+
+---
+
+## Search coverage — the complete Quranic verb index
+
+Search is not limited to a hand-entered dictionary.  `data/quran_verbs.json`
+is built from tagged corpus morphology and holds **every verb that occurs in
+the Quran**:
+
+| | |
+|---|---|
+| verb entries (root + باب) | **1,473** |
+| distinct roots | **941** |
+| verb tokens in the Quran | **19,353** |
+| distinct written forms indexed | **8,551** |
+| ابواب represented | 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 |
+
+Two layers answer a search. The **curated lexicon** (84 verbs) is tried first
+because it carries the fuller Sarf data — مصدر، اسم فاعل، اسم مفعول، meanings,
+and a complete verified گردان. Anything it does not know falls through to the
+**Quranic index**, which supplies the root, the باب, every form the Quran
+contains, and the ayaat.
+
+Entries are keyed on **(root, باب)** rather than on the corpus `LEM` tag,
+because in 13% of verb tokens that tag is simply the surface form again
+(`LEM:كُوِّرَتْ`, `LEM:يَشْعُرُ`) and would split one verb across several bogus
+head-words. `ROOT` and `VF` are dependable, and together they are exactly how
+this application models a verb.
+
+The corpus splits a word into morphemes — `أَنزَلْنَٰهُ` is stored as
+`أَنزَلْ` + `نَٰ` + `هُ` — so every token is also reassembled and indexed under
+the spelling a student would actually type.
+
+**Nothing is generated.** A principal part is recorded only when that exact
+form occurs in the Quran; where it does not, the page shows `×` and says the
+remaining forms were not invented.
+
+### What the search accepts
+
+با harakat or without, in any spelling a student is likely to use:
+
+`أَنزَلَ` · `انزل` · `أَنْزَلَ` · `أُنزِلَ` · `أَنزَلْنَٰهُ` · `قالوا` ·
+`يَكْتُبُونَ` · `يَسْتَغْفِرُونَ` · `ٱهْدِنَا` · `اهدنا` · `كور` · `ن ز ل`
+
+Three normalisation bugs were fixed to make that work: `ٱ` (alef wasla) was
+never folded to `ا`, so every Quranic word opening with it failed; Quranic
+recitation marks (`قَالُوا۟`) were not stripped before comparison; and shadda
+matches did not outrank vowel-blind ones, so `عَلَّمَ` (باب تفعیل) resolved to
+the commoner `عَلِمَ` (باب اوّل).
+
+### «کیا آپ کا مطلب یہ تھا؟»
+
+A misspelling is not a dead end. `هدددى` → **هَدَى**, `سبببح` → **سَبَّحَ**,
+`نصررر` → **نَصَرَ** — suggestions are drawn from verbs that really occur in
+the Quran and filtered so an unrelated verb is never offered merely for
+sharing a couple of letters. Truly random input (`زززز`) correctly suggests
+nothing.
+
+---
+
+## ⌨ On-screen Arabic keyboard
+
+Added *to* the existing search box, not in place of it — the box, the button
+and the styling are untouched, and a device keyboard still works as before.
+It sits in a collapsed panel underneath, because the reader is often an older
+student on a phone with no Arabic keyboard installed.
+
+* **37 letters** — ا أ إ آ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي ى,
+  plus ء ؤ ئ ة لا
+* **9 harakat** — َ ِ ُ ْ ّ ً ٍ ٌ ٰ, each labelled (فتحہ، کسرہ، ضمہ، سکون،
+  تشدید …). They attach to the letter already typed, because they are Unicode
+  combining marks.
+* **Controls** — ⌫ · فاصلہ · سب مٹائیں · تجزیہ کریں, plus a live preview of
+  what has been typed.
+
+Verified on a 390 px phone, a 768 px tablet and a 1440 px desktop: keys stay
+in an 8-across grid with no horizontal overflow. Streamlit stacks `st.columns`
+vertically below ~640 px, which would have turned the keyboard into 37 rows of
+a single key, so the keyboard's own rows are pinned horizontal.
+
+---
+
+## Quranic sources and Islam360
+
+The specification requires Quranic references, meanings and grammar to come
+from **Islam360 only**, and requires the application to say so plainly if
+authorized access is unavailable rather than substitute another source.
+
+> **Islam360 verification: NOT CONNECTED.**
+> Islam360 verification is blocked because authorized Islam360 data/API access
+> is not available in this environment.
+
+What was actually probed from this machine:
+
+| host | result |
+|---|---|
+| `islam360.com` | responds, but serves a **domain-parking page** ("ISLAM360.COM MAY BE AVAILABLE!") — not the app's site, no data |
+| `islam360.pk` | connection times out |
+| `api.islam360.pk` | DNS does not resolve |
+| `quran.islam360.pk` | DNS does not resolve |
+
+There is no public documented Islam360 API and no dataset or credentials were
+supplied. `services/quran_source.py` therefore ships `Islam360Provider`
+**deliberately unimplemented**: every method raises `Islam360NotConfigured`
+rather than returning data from elsewhere under an Islam360 label. The
+Quranic panel in the app states the status and names the real sources.
+
+To connect it later, implement that class's three methods and set
+`ACTIVE = Islam360Provider(...)`. Nothing else needs to change.
+
+**The sources actually used, labelled truthfully in the app:**
+
+| what | source |
+|---|---|
+| grammar (root, باب, tense, voice, person/gender/number) | Quranic Arabic Corpus tagged morphology |
+| ayah text | Tanzil uthmani |
+| Urdu translation | Fateh Muhammad Jalandhry |
+| English translation | Sahih International |
+
 
 ---
 

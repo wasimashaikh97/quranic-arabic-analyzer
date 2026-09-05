@@ -201,11 +201,44 @@ def inject_keyboard_css(font_scale: float = 1.0):
         font-size: {1.15 * font_scale:.2f}em !important;
         min-height: 2.6em !important;
     }}
+    /* Streamlit stacks st.columns vertically on a narrow screen, which would
+       turn the keyboard into 37 rows of a single key — unusable on exactly
+       the device it exists for.  Keep the keyboard's own rows horizontal. */
+    /* NB: the selector must match only the keyboard's own row.  Matching any
+       block that merely *contains* a key also caught the page's outer
+       [1,3,1] layout columns, which then refused to stack and squeezed the
+       whole page into a narrow strip — hence the direct-child path. */
+    [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]
+        > [data-testid="stVerticalBlock"] > [class*="st-key-kb_"]) {{
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 4px !important;
+    }}
+    [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]
+        > [data-testid="stVerticalBlock"] > [class*="st-key-kb_"])
+        > [data-testid="stColumn"] {{
+        flex: 1 1 0 !important;
+        width: auto !important;
+        min-width: 0 !important;
+    }}
+
     @media (max-width: 720px) {{
-        [class*="st-key-kb_l_"] button, [class*="st-key-kb_h_"] button {{
-            font-size: {1.35 * font_scale:.2f}em !important;
-            min-height: 2.6em !important;
+        [class*="st-key-kb_l_"] button {{
+            font-size: {1.25 * font_scale:.2f}em !important;
+            min-height: 2.5em !important;
+            padding: 0 !important;
         }}
+        [class*="st-key-kb_h_"] button {{
+            font-size: {1.8 * font_scale:.2f}em !important;
+            min-height: 2.1em !important;
+        }}
+        [class*="st-key-kb_back"] button, [class*="st-key-kb_space"] button,
+        [class*="st-key-kb_clear"] button,
+        [class*="st-key-kb_search"] button {{
+            font-size: {0.85 * font_scale:.2f}em !important;
+            padding: 0.4em 0.1em !important;
+        }}
+        .qa-kb-preview {{ font-size: {1.5 * font_scale:.2f}em; }}
     }}
     </style>
     """, unsafe_allow_html=True)
