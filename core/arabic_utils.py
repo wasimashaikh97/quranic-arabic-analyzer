@@ -42,6 +42,19 @@ HAMZA = 'ء'           # ء
 ALEF_WASLA = 'ٱ'      # ٱ
 TA_MARBUTA = 'ة'      # ة
 HA = 'ه'              # ه
+KAF = 'ك'             # ك
+
+#: Letter shapes an Urdu or Farsi keyboard produces where Arabic has a
+#: different code point.  A student in Pakistan typing on a phone gets ی
+#: for ي, ک for ك and ھ/ہ for ه — and Islam360 itself writes ه as ھ in its
+#: roots («ھ د ي»).  All of them must compare equal to the Arabic letter.
+FARSI_YEH = 'ی'          # U+06CC
+YEH_BARREE = 'ے'         # U+06D2
+KEHEH = 'ک'              # U+06A9
+HEH_DOACHASHMEE = 'ھ'    # U+06BE
+HEH_GOAL = 'ہ'           # U+06C1
+TEH_MARBUTA_GOAL = 'ۃ'   # U+06C3
+TATWEEL = 'ـ'            # U+0640 — a filler, never a letter
 
 WEAK_LETTERS = frozenset([ALEF, ALEF_MAQSURA, WAW, YA])
 HAMZA_FORMS = frozenset([HAMZA, HAMZA_ON_ALEF, ALEF_HAMZA_BELOW,
@@ -126,8 +139,14 @@ def normalise_letters(text: str) -> str:
             out.append(WAW)
         elif ch == YA_HAMZA:
             out.append(YA)
-        elif ch == TA_MARBUTA:
+        elif ch in (TA_MARBUTA, TEH_MARBUTA_GOAL, HEH_DOACHASHMEE, HEH_GOAL):
             out.append(HA)
+        elif ch in (FARSI_YEH, YEH_BARREE):
+            out.append(YA)
+        elif ch == KEHEH:
+            out.append(KAF)
+        elif ch == TATWEEL:
+            continue
         else:
             out.append(ch)
     return ''.join(out)

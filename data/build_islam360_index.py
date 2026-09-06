@@ -42,7 +42,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
-from core.arabic_utils import normalise_letters, strip_marks    # noqa: E402
+from core.quran_index import key_bare                          # noqa: E402
 
 PACKAGE = ('48071ZahidHussainChihpa.Islam360Universal'
            '_1.1.0.23_x64__8x13y3kbk4qr2')
@@ -70,7 +70,11 @@ def find_xml_dir() -> Path:
 
 
 def key_word(text: str) -> str:
-    return normalise_letters(strip_marks(text or '')).replace(' ', '').strip()
+    """The one comparison key the whole app uses, so a word looked up from
+    the corpus side and a word stored from Islam360's side meet in the
+    middle: no harakat, no Quranic recitation marks, hamza/alef/ya folded,
+    Urdu letter shapes folded to their Arabic ones."""
+    return key_bare(text or '')
 
 
 def clean(text: str) -> str:
@@ -100,9 +104,15 @@ def read_ayat(xml_dir: Path) -> dict:
 
 
 def read_roots(xml_dir: Path):
-    """Islam360's own root for every Quranic word, plus its لغات notes."""
+    """Islam360's own root for every Quranic word, plus its لغات notes.
+
+    Also returns, per ayah, which words Islam360 assigns to which roots —
+    the map that lets any «word W at s:a belongs to root R» claim made
+    elsewhere be checked against Islam360 exactly, with no sampling cap.
+    """
     roots = defaultdict(lambda: {'words': defaultdict(list), 'lughaat': ''})
     words = defaultdict(set)
+    ayah_words = defaultdict(lambda: defaultdict(set))   # "s:a" -> key -> roots
     total = 0
     path = xml_dir / 'RootWords.xml'
     for _ev, el in ET.iterparse(str(path), events=('end',)):
@@ -124,13 +134,14 @@ def read_roots(xml_dir: Path):
             bucket = entry['words'][word]
             if len(bucket) < 12 and occ not in bucket:
                 bucket.append(occ)
+            ayah_words['%s:%s' % (int(surah), int(ayah))][key_word(word)].add(root)
         else:
             entry['words'].setdefault(word, [])
         # the لغات article is attached to a root's first occurrence
         if lughaat and not entry['lughaat']:
             entry['lughaat'] = lughaat[:MAX_LUGHAAT]
         words[key_word(word)].add(root)
-    return roots, words, total
+    return roots, words, ayah_words, total
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +154,7 @@ def main() -> int:
     print('    %d ayaat' % len(ayat))
 
     print('  reading RootWords.xml ...')
-    roots, words, total = read_roots(xml_dir)
+    roots, words, ayah_words, total = read_roots(xml_dir)
     print('    %d word entries, %d distinct roots' % (total, len(roots)))
 
     payload = {
@@ -162,6 +173,8 @@ def main() -> int:
         'roots': {r: {'words': dict(v['words']), 'lughaat': v['lughaat']}
                   for r, v in roots.items()},
         'words': {k: sorted(v) for k, v in words.items()},
+        'ayah_words': {k: {w: sorted(r) for w, r in v.items()}
+                       for k, v in ayah_words.items()},
     }
 
     OUT.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
@@ -171,6 +184,7 @@ def main() -> int:
     print('  ayaat            : %d' % len(ayat))
     print('  roots            : %d  (%d with لغات)' % (len(roots), with_lughaat))
     print('  distinct words   : %d' % len(words))
+    print('  ayaat with roots : %d' % len(ayah_words))
     print('  size             : %.1f MB' % (OUT.stat().st_size / 1e6))
     return 0
 

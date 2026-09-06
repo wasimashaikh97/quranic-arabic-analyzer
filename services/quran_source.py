@@ -38,6 +38,8 @@ import os
 import re
 from pathlib import Path
 
+from core.quran_index import key_bare
+
 #: Where the index lives by default — built locally, never committed.
 DEFAULT_INDEX_PATH = (Path(__file__).parent.parent / 'data'
                       / 'islam360_index.json')
@@ -68,6 +70,19 @@ def _configured_path() -> Path:
 
 #: kept for callers that import it by name
 INDEX_PATH = DEFAULT_INDEX_PATH
+
+
+def _weak_final_variant(root_key: str):
+    """The other analysis of a defective root, or None.
+
+    Lexicographers legitimately disagree on the final radical of a ناقص root:
+    the corpus has ندي where Islam360 has ن د و, رضو against ر ض ي.  Only the
+    *final* radical is folded — the middle one distinguishes real roots
+    (قول/قيل, دون/دين, طور/طير) and is never touched.
+    """
+    if len(root_key) == 3 and root_key[-1] in 'وي':
+        return root_key[:-1] + ('ي' if root_key[-1] == 'و' else 'و')
+    return None
 
 
 class Islam360NotConfigured(RuntimeError):
@@ -102,6 +117,7 @@ class Islam360Provider(QuranSource):
     def __init__(self, index_path: Path = None):
         self.index_path = Path(index_path) if index_path else _configured_path()
         self._data = None
+        self._roots_by_key = None
 
     # -- loading --------------------------------------------------------
     @property
@@ -134,34 +150,115 @@ class Islam360Provider(QuranSource):
     #: prints it twice.
     _SURAH_PREFIX = re.compile(r'^\s*سور[ةهۃ]\s+')
 
+    @staticmethod
+    def _keys(surah, ayah) -> list:
+        """Islam360's record key(s) for a standard (Kufi) surah:ayah.
+
+        Islam360 keeps بسم الله as record ``n:0`` of every surah, and divides
+        Al-Fatiha differently from the standard count: its 1:1 is الحمد, so
+        standard 1:2‥1:6 are its 1:1‥1:5, standard 1:1 is its 1:0, and the
+        standard 1:7 «صراط الذين … ولا الضالين» is split across its 1:6 and
+        1:7.  Every other surah is numbered identically (checked: 2:286 and
+        114:6 exist, 2:287 and 114:7 do not).
+        """
+        surah, ayah = int(surah), int(ayah)
+        if surah != 1:
+            return ['%s:%s' % (surah, ayah)]
+        if ayah == 1:
+            return ['1:0']
+        if ayah == 7:
+            return ['1:6', '1:7']
+        return ['1:%s' % (ayah - 1)]
+
     def ayah(self, surah, ayah) -> dict:
-        """Islam360's own text and translations for one ayah."""
-        record = self.data.get('ayat', {}).get('%s:%s' % (surah, ayah))
-        if not record:
+        """Islam360's own text and translations for one (standard) ayah."""
+        ayat = self.data.get('ayat', {})
+        records = [ayat[k] for k in self._keys(surah, ayah) if k in ayat]
+        if not records:
             return {}
+        joined = lambda field: ' '.join(                          # noqa: E731
+            r.get(field, '') for r in records if r.get(field))
+        first = records[0]
         return {
-            'arabic_text': self._RUKU_MARKER.sub('', record.get('ar', '')),
-            'translation_urdu': record.get('ur', ''),
-            'translation_english': record.get('en', ''),
+            'arabic_text': ' '.join(self._RUKU_MARKER.sub('', r.get('ar', ''))
+                                    for r in records),
+            'translation_urdu': joined('ur'),
+            'translation_english': joined('en'),
             'surah_name_arabic': self._SURAH_PREFIX.sub(
-                '', record.get('surah_ur', '')),
-            'surah_name_english': record.get('surah_en', ''),
+                '', first.get('surah_ur', '')),
+            'surah_name_english': first.get('surah_en', ''),
             'surah_number': surah,
             'ayah_number': ayah,
             'source': 'Islam360',
         }
+
+    @property
+    def _root_lookup(self) -> dict:
+        """Folded comparison key -> Islam360's own spelling of the root.
+
+        Islam360 writes «ھ د ي» where the corpus writes «هدي», and keeps a
+        particle like لَــــیْسَ as its own root, harakat and tatweel and
+        all.  Comparing folded keys makes those one root, as they are.
+        """
+        if self._roots_by_key is None:
+            lookup = {}
+            for root in self.data.get('roots', {}):
+                lookup.setdefault(key_bare(root), root)
+            self._roots_by_key = lookup
+        return self._roots_by_key
 
     def root_entry(self, root: str) -> dict:
         """Islam360's record for a root: its Quranic words and its لغات."""
         roots = self.data.get('roots', {})
         if root in roots:
             return roots[root]
-        # tolerate spacing differences between «ن ز ل» and «نزل»
-        squashed = (root or '').replace(' ', '')
-        for key, value in roots.items():
-            if key.replace(' ', '') == squashed:
-                return value
-        return {}
+        key = key_bare(root or '')
+        real = self._root_lookup.get(key)
+        if real is None:
+            variant = _weak_final_variant(key)
+            real = self._root_lookup.get(variant) if variant else None
+        return roots.get(real, {}) if real else {}
+
+    def confirm(self, surah, ayah, word: str, root: str) -> dict:
+        """Does Islam360 list this word, at this ayah, under this root?
+
+        The exact check the specification asks for, made against Islam360's
+        own per-ayah tagging rather than a sampled list.  Three answers, each
+        true only when Islam360 actually says so:
+
+        ``ayah``  Islam360 has the ayah at all
+        ``root``  Islam360 assigns this root to some word of that ayah
+        ``word``  Islam360 assigns this root to *this* word there
+        ``word_other_root``  the word is there, under a different root
+        """
+        table = self.data.get('ayah_words', {})
+        aw = {}
+        for key in self._keys(surah, ayah):
+            aw.update(table.get(key, {}))
+        if not aw:
+            return {'ayah': False, 'root': False, 'word': False}
+        rk, wk = key_bare(root or ''), key_bare(word or '')
+        alt = _weak_final_variant(rk)
+        root_hit = word_hit = word_seen = False
+        for w, roots in aw.items():
+            # Islam360 writes a clitic-bearing word's root segmented,
+            # «صفو|ک» for ٱصْطَفَىٰكِ — each segment is a candidate root
+            keys = [key_bare(part) for r in roots for part in r.split('|')]
+            same_word = key_bare(w) == wk
+            word_seen = word_seen or same_word
+            if rk in keys:
+                root_hit = True
+                if same_word:
+                    word_hit = True
+            elif alt and alt in keys and same_word:
+                # the same word, at the same place, under the other analysis
+                # of a defective root — that is one root, not two
+                root_hit = word_hit = True
+        return {'ayah': True, 'root': root_hit, 'word': word_hit,
+                # Islam360 has the word at this ayah but analyses its root
+                # differently (a quadriliteral like طمأن read as ط م ن);
+                # the reference is confirmed, the root analysis is not
+                'word_other_root': word_seen and not word_hit}
 
     def occurrences(self, root: str, baab=None, limit: int = 8) -> list:
         """Where the words of this root occur, with Islam360's ayah text."""
@@ -188,7 +285,7 @@ class Islam360Provider(QuranSource):
                 'source': 'Islam360'} if entry else {}
 
     def roots_for_word(self, word_key: str) -> list:
-        return self.data.get('words', {}).get(word_key, [])
+        return self.data.get('words', {}).get(key_bare(word_key or ''), [])
 
     def status(self) -> dict:
         if not self.configured:

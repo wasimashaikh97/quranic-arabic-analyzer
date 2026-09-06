@@ -24,6 +24,7 @@ contains only the third.
 
 import difflib
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -67,25 +68,63 @@ PGN_PRONOUN = {
 #: قالوا, and those are the same word.
 _QURANIC_MARKS = ''.join(chr(c) for c in
                          list(range(0x0610, 0x061B)) +      # ؐ .. ؚ
+                         list(range(0x0653, 0x0660)) +      # ٓ .. ٟ  (ٖ ٗ ٘ …)
                          list(range(0x06D6, 0x06EE)) +      # ۖ .. ۭ
                          [0x0640])                          # ـ tatweel
 _QURANIC_TABLE = {ord(c): None for c in _QURANIC_MARKS}
+
+#: the dagger alef — handled before the other marks go, because it is not a
+#: vowel sign but a whole letter written small
+_DAGGER = 'ٰ'
+_ALEF_MAQSURA = 'ى'
 
 
 def _strip_quranic(text: str) -> str:
     return (text or '').translate(_QURANIC_TABLE)
 
 
+def _bare_letters(text: str, keep_shadda: bool = False) -> str:
+    """Letters only — every mark removed except the dagger alef (and, when
+    asked, the shadda), which still have to be interpreted."""
+    from .arabic_utils import is_mark, SHADDA
+    out = []
+    for ch in _strip_quranic(text):
+        if ch == _DAGGER or (keep_shadda and ch == SHADDA) or not is_mark(ch):
+            out.append(ch)
+    return ''.join(out)
+
+
+def _fold_dagger(bare: str) -> str:
+    """Read the Uthmani dagger alef as the long alef it stands for.
+
+    The corpus writes أَنزَلْنَٰهُ, كِتَٰب, هَدَىٰكُمْ; a student types
+    انزلناه, كتاب, هداكم, and Islam360 prints اَنْزَلْنٰهُ, كِتَاب, هَدٰكُمْ.
+    Dropping the dagger — what a plain mark-stripper does — turned those into
+    انزلنه, كتب, هدكم and matched none of them.
+
+    ىٰ is the alef-maqsura ending, which both a student and Islam360 write
+    with a ya whether or not a pronoun follows (تَرْضَىٰ → ترضي,
+    ٱصْطَفَىٰكِ → اصطفيك as Islam360 has it); a dagger directly before a ya
+    is redundant with it; anywhere else it is an alef.
+    """
+    bare = re.sub(_ALEF_MAQSURA + _DAGGER, 'ي', bare)
+    bare = re.sub(_DAGGER + '(?=[يىی])', '', bare)
+    return bare.replace(_DAGGER, 'ا')
+
+
+def _finish(letters: str) -> str:
+    # ءَا (the corpus's آ) folds to two alefs; Islam360's اٰ folds to one.
+    return re.sub('ا{2,}', 'ا', normalise_letters(letters)).replace(' ', '')
+
+
 def key_bare(text: str) -> str:
     """Vowel-free, orthography-folded — the main lookup key."""
-    return normalise_letters(
-        strip_marks(_strip_quranic(text))).replace(' ', '')
+    return _finish(_fold_dagger(_bare_letters(text)))
 
 
 def key_shadda(text: str) -> str:
     """Vowel-free but keeps shadda, so عَلَّمَ never collapses into عَلِمَ."""
-    return normalise_letters(
-        strip_vowels(_strip_quranic(text))).replace(' ', '')
+    return _finish(_fold_dagger(_bare_letters(text, keep_shadda=True)))
 
 
 class QuranVerbIndex:

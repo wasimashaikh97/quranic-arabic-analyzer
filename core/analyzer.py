@@ -356,7 +356,6 @@ class VerbAnalyzer:
         except Exception:
             return occurrences
 
-        target = key_bare(root)
         for occ in occurrences:
             try:
                 record = provider.ayah(occ.get('surah_number'),
@@ -374,13 +373,17 @@ class VerbAnalyzer:
             occ['translation_english'] = record.get('translation_english', '')
             occ['text_source'] = 'Islam360'
             occ['source'] = 'Islam360'
+            # the exact check: does Islam360 list *this word*, at *this
+            # ayah*, under *this root*?  True only when it says so.
             try:
-                roots = provider.roots_for_word(
-                    key_bare(occ.get('highlighted_word', '')))
-                occ['islam360_root_match'] = any(
-                    key_bare(r) == target for r in roots) if target else False
+                check = provider.confirm(occ.get('surah_number'),
+                                         occ.get('ayah_number'),
+                                         occ.get('highlighted_word', ''),
+                                         root)
             except Exception:
-                occ['islam360_root_match'] = False
+                check = {}
+            occ['islam360_confirmed'] = bool(check.get('word'))
+            occ['islam360_root_at_ayah'] = bool(check.get('root'))
         return occurrences
 
     def islam360_occurrences(self, root: str, limit: int = 6) -> list:

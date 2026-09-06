@@ -372,3 +372,70 @@ class TestIslam360Data(Base):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
+
+def _islam360_connected():
+    try:
+        from services import quran_source
+        return bool(quran_source.verification_status()['islam360_verified'])
+    except Exception:
+        return False
+
+
+@unittest.skipUnless(_islam360_connected(),
+                     'Islam360 app data is not present on this machine')
+class TestIslam360Consistency(Base):
+    """What the app cites must be what Islam360 says — checked, not assumed.
+
+    Islam360 caught the one error this guards against: the curated data had
+    27:22 يَقِينٍ («certainty», root ي ق ن) filed under وَقَى with a صیغہ.
+    """
+
+    def setUp(self):
+        from services import quran_source
+        self.prov = quran_source.get_islam360()
+
+    def test_every_curated_occurrence_is_confirmed_by_islam360(self):
+        import json
+        from pathlib import Path as _P
+        data = _P(__file__).parent.parent / 'data'
+        verbs = {v['id']: v for v in json.loads(
+            (data / 'verbs.json').read_text(encoding='utf-8'))['verbs']}
+        occ = json.loads((data / 'quranic_occurrences.json')
+                         .read_text(encoding='utf-8'))['occurrences']
+        self.assertGreater(len(occ), 250)
+        for o in occ:
+            root = verbs.get(o['verb_id'], {}).get('root') or o.get('root')
+            c = self.prov.confirm(o['surah_number'], o['ayah_number'],
+                                  o.get('highlighted_word', ''), root)
+            self.assertTrue(
+                c['word'],
+                '%s %s:%s %s (root %s) is not what Islam360 has there: %s'
+                % (o['verb_id'], o['surah_number'], o['ayah_number'],
+                   o.get('highlighted_word'), root, c))
+
+    def test_index_occurrences_are_overwhelmingly_confirmed(self):
+        """The corpus and Islam360 are independent taggings; they must agree
+        on nearly every cited word, and never disagree about an ayah."""
+        cited = ok = no_ayah = 0
+        for e in self.index.verbs:
+            for o in e.get('occurrences', []):
+                c = self.prov.confirm(o['s'], o['a'], o['w'], e['root'])
+                cited += 1
+                ok += bool(c['word'])
+                no_ayah += (not c['ayah'])
+        self.assertEqual(no_ayah, 0)
+        self.assertGreater(ok / cited, 0.98, '%d of %d confirmed' % (ok, cited))
+
+    def test_fatiha_is_numbered_the_standard_way(self):
+        """Islam360 keeps بسم الله as 1:0 and splits the last ayah; the app
+        must still answer 1:1‥1:7 the way every reference numbers them."""
+        self.assertIn('بسم', key_bare(self.prov.ayah(1, 1)['arabic_text']))
+        self.assertIn('الحمد', key_bare(self.prov.ayah(1, 2)['arabic_text']))
+        self.assertIn('اهدنا', key_bare(self.prov.ayah(1, 6)['arabic_text']))
+        last = key_bare(self.prov.ayah(1, 7)['arabic_text'])
+        self.assertIn('صراط', last)          # Islam360's 1:6 …
+        self.assertIn('الضالين', last)       # … joined with its 1:7
+        self.assertTrue(self.prov.confirm(1, 6, 'ٱهْدِنَا', 'هدي')['word'])
+        self.assertFalse(self.prov.confirm(2, 4, 'أُنزِلَ', 'كتب')['word'])
+

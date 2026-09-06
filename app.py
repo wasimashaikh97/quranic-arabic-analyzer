@@ -497,12 +497,19 @@ def _render_ayaat(usage: list):
         if sigha and not ex.get('form_certain', True):
             sigha += ' (احتمالاً)'
         sigha_html = ('&nbsp;·&nbsp; %s' % theme.esc(sigha)) if sigha else ''
+        # said only when Islam360 itself lists this word at this ayah under
+        # this root — a claim checked per ayah, never assumed from the panel
+        verified_html = ''
+        if ex.get('islam360_confirmed'):
+            verified_html = ('&nbsp;·&nbsp; <span style="color:#166534;'
+                             'font-size:.85em" title="Islam360">'
+                             '✓ اسلام۳۶۰</span>')
         st.markdown(
             f"""<div class="qa-card" dir="rtl">
               <div class="qa-ayah-ref">سورۃ {theme.esc(ex.get('surah_name_arabic',''))}
                   ({theme.esc(ex.get('surah_number',''))}:{theme.esc(ex.get('ayah_number',''))})
                   &nbsp;·&nbsp; <b>{theme.esc(ex.get('highlighted_word',''))}</b>
-                  {sigha_html}</div>
+                  {sigha_html}{verified_html}</div>
               <div class="qa-ayah">{theme.esc(ex.get('arabic_text',''))}</div>
               <div class="qa-ayah-ur">{theme.esc(ex.get('translation_urdu',''))}</div>
               <div class="qa-ayah-en">{theme.esc(ex.get('translation_english',''))}</div>

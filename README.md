@@ -50,7 +50,7 @@ python data/build_quran_verb_index.py --download # quran_verbs.json (the index)
 ## Tests
 
 ```bash
-python -m unittest tests.test_analyzer tests.test_ui tests.test_quran_index   # 149 tests
+python -m unittest tests.test_analyzer tests.test_ui tests.test_quran_index   # 165 tests
 ```
 
 ---
@@ -79,8 +79,8 @@ what keeps `نَادِيَهُ` (96:17, the noun *his assembly*) out of نَاد
 and `أَعْنَتَ` (root ع‑ن‑ت) out of أَعَانَ's. Translations are Jalandhry (Urdu)
 and Sahih International (English).
 
-**Coverage:** 84 verified verbs · 51 roots · 9 ابواب · 288 Quranic ayaat across
-65 verbs · 281 of those labelled with the exact صیغہ.
+**Coverage:** 84 verified verbs · 51 roots · 9 ابواب · 287 Quranic ayaat across
+65 verbs, every one confirmed word-for-word by Islam360 · 280 labelled with the exact صیغہ.
 
 ---
 
@@ -222,6 +222,33 @@ The Quranic panel says this on screen rather than leaving it implied. Where a
 verb has no attested occurrence in its باب, the app says so plainly and offers
 Islam360's root-wide word list separately, folded away and labelled as *not*
 صیغہ-analysed — it never stands in for the verb.
+
+### Verified, per ayah, not assumed
+
+Every occurrence the app cites is checked against Islam360's own per-ayah
+root tagging at the moment it is shown: *does Islam360 list this word, at
+this ayah, under this root?* Only when the answer is yes does the card carry
+`✓ اسلام۳۶۰`. The check is exact, so it needed the two orthographies to be
+made comparable first — Islam360 writes ه as the Urdu ھ, ي as ی, marks the
+pronoun with `هٗ`, prints the Uthmani dagger alef as a full alef
+(`اَنْزَلْنٰهُ` for the corpus's `أَنزَلْنَٰهُ`), and stores بسم الله as
+record `1:0`, dividing Al-Fatiha differently from the standard count. All
+of that is folded in one shared key, which also means a student typing on
+an Urdu phone keyboard (ی ک ھ ہ) is understood.
+
+Measured on this machine, with the app's own check:
+
+| what | result |
+|---|---|
+| curated verbs | 84 found; 81 roots in Islam360 — the other three (`ر و ي`, `ك س ر`) are textbook verbs the Quran never uses, and the app says so |
+| curated occurrences | 287 of 287 confirmed word-for-word by Islam360 (the 288th, 27:22 يَقِينٍ under وَقَى, was Islam360's catch: it is the noun «certainty», root ي ق ن, and has been removed) |
+| index roots | 930 of 941 resolve in Islam360; the 11 that do not are quadriliterals and rarities Islam360 analyses differently (طمأن، زلزل، كبكب …) |
+| index occurrences | 5,389 of 5,463 (98.6 %) confirmed word-for-word; 36 more have the root at that ayah under a differently spelled word; 38 are words Islam360 has not root-tagged at all. None is an ayah Islam360 lacks. |
+| verbs fully confirmed | 1,435 of 1,472 |
+
+`tests/test_quran_index.py::TestIslam360Consistency` re-runs the curated
+check in full and the index check as a threshold, so a future data edit
+that Islam360 would contradict fails the build.
 
 ### Licensing
 
