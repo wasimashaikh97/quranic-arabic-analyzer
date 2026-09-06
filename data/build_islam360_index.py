@@ -10,7 +10,8 @@ Source (read-only, never modified)::
 
     C:\\Program Files\\WindowsApps\\48071ZahidHussainChihpa.Islam360Universal_…
         XmlFiles\\RootWords.xml       77,877 words: root, word, surah, ayah, لغات
-        XmlFiles\\QuranComplete.xml    6,236 ayaat: Arabic, Urdu, English, names
+        XmlFiles\\QuranComplete.xml    6,349 records: 6,236 ayaat + بسم الله as n:0
+                                       Arabic, Urdu, English, surah names
 
 Output — ``data/islam360_index.json``::
 
@@ -18,7 +19,8 @@ Output — ``data/islam360_index.json``::
       "meta":  {...source, version, counts...},
       "ayat":  {"2:255": {"ar": …, "ur": …, "en": …, "surah_ur": …}},
       "roots": {"ن ز ل": {"words": {"أَنْزَلَ": [[2,4], …]}, "lughaat": "…"}},
-      "words": {"انزل": ["ن ز ل"]}
+      "words": {"انزل": ["ن ز ل"]},
+      "ayah_words": {"2:4": {"انزل": ["ن ز ل"], ...}}   # per ayah, exact
     }
 
 **Licensing.** This is Islam360's copyrighted content.  The index is written
