@@ -787,6 +787,14 @@ class PDFGenerator:
                 item.get('surah_name_arabic', item.get('surah_name', '')),
                 item.get('surah_number', item.get('surah_no', '')),
                 item.get('ayah_number', item.get('ayah_no', '')))
+            # the same facts the on-screen card carries: the word itself, its
+            # صیغہ, and — only when Islam360's own tagging lists that word at
+            # that ayah under this root — that it is Islam360-confirmed.  In
+            # words, because the bundled font has no tick glyph.
+            extras = [item.get('highlighted_word', ''), item.get('sigha_urdu', '')]
+            if item.get('islam360_confirmed'):
+                extras.append('اسلام۳۶۰ سے تصدیق شدہ')
+            ref = ' · '.join([ref] + [x for x in extras if x])
             block = [Paragraph(reshape(ref), self.styles['section']),
                      Paragraph(reshape(item.get('arabic_text', item.get('arabic', ''))),
                                self.styles['arabic'])]
