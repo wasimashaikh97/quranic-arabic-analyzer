@@ -431,9 +431,12 @@ def render_quranic(usage: list, lang: str, lughaat: dict = None):
     # openly — never a verification that was not performed.
     status = quran_source.verification_status(lang)
     if status['islam360_verified']:
-        theme.notice('%s  —  %s آیات · %s مادے'
-                     % (status['ok_message'], status.get('ayat', ''),
-                        status.get('roots', '')), 'info')
+        counts = {'en': '%s ayaat · %s roots',
+                  'ar': '%s آية · %s مادة'}.get(lang, '%s آیات · %s مادے')
+        theme.notice('%s  —  %s' % (status['ok_message'],
+                                    counts % (status.get('ayat', ''),
+                                              status.get('roots', ''))),
+                     'info')
         # Islam360 indexes by root; it does not tag صیغہ.  Say which part of
         # what follows is its and which is the tagged morphology's.
         theme.notice(
@@ -461,8 +464,12 @@ def render_quranic(usage: list, lang: str, lughaat: dict = None):
                 % theme.esc(lughaat['lughaat']), unsafe_allow_html=True)
 
     if not usage:
-        theme.notice('اس فعل کا قرآن مجید میں کوئی مستند استعمال ہمارے ریکارڈ '
-                     'میں نہیں ملا۔', 'info')
+        theme.notice({
+            'en': 'No attested occurrence of this verb in the Quran is in '
+                  'our records.',
+            'ar': 'لم نجد لهذا الفعل استعمالاً موثّقاً في القرآن الكريم.'}.get(
+            lang, 'اس فعل کا قرآن مجید میں کوئی مستند استعمال ہمارے ریکارڈ '
+                  'میں نہیں ملا۔'), 'info')
         return
 
     # Two different claims, kept apart on purpose.  «This verb occurs here» is
@@ -475,44 +482,68 @@ def render_quranic(usage: list, lang: str, lughaat: dict = None):
     attested = [ex for ex in usage if not ex.get('root_level')]
 
     if attested:
-        _render_ayaat(attested)
+        _render_ayaat(attested, lang)
 
     if root_level:
         if not attested:
-            theme.notice('اس فعل (اسی باب میں) کا قرآن مجید میں کوئی مستند '
-                         'استعمال نہیں ملا۔', 'info')
+            theme.notice({
+                'en': 'This verb, in this باب, has no attested occurrence in '
+                      'the Quran.',
+                'ar': 'لا يوجد لهذا الفعل في هذا الباب استعمال موثّق في '
+                      'القرآن.'}.get(
+                lang, 'اس فعل (اسی باب میں) کا قرآن مجید میں کوئی مستند '
+                      'استعمال نہیں ملا۔'), 'info')
         with st.expander('📖 %s' % {
                 'en': 'Other words of this root in the Quran (Islam360) — '
                       'not صیغہ-analysed',
                 'ar': 'كلمات أخرى من هذه المادة (إسلام360)'}.get(
                 lang, 'اسی مادہ کے دوسرے قرآنی الفاظ (اسلام۳۶۰) — '
                       'ان کا صیغہ متعین نہیں کیا گیا')):
-            _render_ayaat(root_level)
+            _render_ayaat(root_level, lang)
 
 
-def _render_ayaat(usage: list):
-    """One ayah card per occurrence, in the section's existing card style."""
+def _render_ayaat(usage: list, lang: str = 'ur'):
+    """One ayah card per occurrence, in the section's existing card style.
+
+    Every card exists in three languages: the reference line, the صیغہ and
+    the confirmation label follow the interface language, and the reader's
+    own translation comes first.  The Arabic of the verse is the Arabic.
+    """
+    surah_word = {'en': 'Surah', 'ar': 'سورة'}.get(lang, 'سورۃ')
+    verified = {'en': '✓ Islam360', 'ar': '✓ إسلام360'}.get(lang, '✓ اسلام۳۶۰')
+    uncertain = {'en': ' (probable)', 'ar': ' (على الأرجح)'}.get(lang, ' (احتمالاً)')
+    direction = 'ltr' if lang == 'en' else 'rtl'
+
     for ex in usage:
-        sigha = ex.get('sigha_urdu', '')
+        if lang == 'en':
+            sigha = ex.get('sigha_english') or ex.get('sigha_urdu', '')
+            surah = ex.get('surah_name_english') or ex.get('surah_name_arabic', '')
+        else:
+            sigha = ex.get('sigha_urdu', '')
+            surah = ex.get('surah_name_arabic', '')
         if sigha and not ex.get('form_certain', True):
-            sigha += ' (احتمالاً)'
+            sigha += uncertain
         sigha_html = ('&nbsp;·&nbsp; %s' % theme.esc(sigha)) if sigha else ''
         # said only when Islam360 itself lists this word at this ayah under
         # this root — a claim checked per ayah, never assumed from the panel
         verified_html = ''
         if ex.get('islam360_confirmed'):
             verified_html = ('&nbsp;·&nbsp; <span style="color:#166534;'
-                             'font-size:.85em" title="Islam360">'
-                             '✓ اسلام۳۶۰</span>')
+                             'font-size:.85em" title="Islam360">%s</span>'
+                             % theme.esc(verified))
+        ur = ('<div class="qa-ayah-ur">%s</div>'
+              % theme.esc(ex.get('translation_urdu', '')))
+        en = ('<div class="qa-ayah-en">%s</div>'
+              % theme.esc(ex.get('translation_english', '')))
+        translations = en + ur if lang == 'en' else ur + en
         st.markdown(
-            f"""<div class="qa-card" dir="rtl">
-              <div class="qa-ayah-ref">سورۃ {theme.esc(ex.get('surah_name_arabic',''))}
+            f"""<div class="qa-card" dir="{direction}">
+              <div class="qa-ayah-ref">{theme.esc(surah_word)} {theme.esc(surah)}
                   ({theme.esc(ex.get('surah_number',''))}:{theme.esc(ex.get('ayah_number',''))})
-                  &nbsp;·&nbsp; <b>{theme.esc(ex.get('highlighted_word',''))}</b>
+                  &nbsp;·&nbsp; <b dir="rtl">{theme.esc(ex.get('highlighted_word',''))}</b>
                   {sigha_html}{verified_html}</div>
-              <div class="qa-ayah">{theme.esc(ex.get('arabic_text',''))}</div>
-              <div class="qa-ayah-ur">{theme.esc(ex.get('translation_urdu',''))}</div>
-              <div class="qa-ayah-en">{theme.esc(ex.get('translation_english',''))}</div>
+              <div class="qa-ayah" dir="rtl">{theme.esc(ex.get('arabic_text',''))}</div>
+              {translations}
             </div>""", unsafe_allow_html=True)
 
 

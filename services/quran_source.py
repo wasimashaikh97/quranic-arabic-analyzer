@@ -150,6 +150,12 @@ class Islam360Provider(QuranSource):
     #: prints it twice.
     _SURAH_PREFIX = re.compile(r'^\s*سور[ةهۃ]\s+')
 
+    #: Islam360's English names are «Surat-ul-Baqara», «Surat-ut-Toor»; the
+    #: renderer writes the word «Surah» itself, so only the name is kept.
+    _SURAH_PREFIX_EN = re.compile(
+        r'^\s*Surat?[-\s]+(?:u[ltnsrzd]{1,2}|a[ltnsrzd]{1,2})?[-\s]*',
+        re.IGNORECASE)
+
     @staticmethod
     def _keys(surah, ayah) -> list:
         """Islam360's record key(s) for a standard (Kufi) surah:ayah.
@@ -186,7 +192,8 @@ class Islam360Provider(QuranSource):
             'translation_english': joined('en'),
             'surah_name_arabic': self._SURAH_PREFIX.sub(
                 '', first.get('surah_ur', '')),
-            'surah_name_english': first.get('surah_en', ''),
+            'surah_name_english': self._SURAH_PREFIX_EN.sub(
+                '', first.get('surah_en', '')),
             'surah_number': surah,
             'ayah_number': ayah,
             'source': 'Islam360',

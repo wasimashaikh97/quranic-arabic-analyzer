@@ -394,14 +394,14 @@ def inject_css(font_scale: float = 1.0, lang: str = 'ur'):
     .qa-note {{
         background: {C['warn_bg']}; border: 2px solid {C['warn_edge']};
         border-radius: 12px; padding: 14px 16px; margin: 12px 0;
-        direction: rtl; text-align: right;
+        direction: {direction(lang)}; text-align: {align(lang)};
         font-size: {1.1 * font_scale:.2f}em; line-height: 1.9;
         color: {C['accent']};
     }}
     .qa-info {{
         background: {C['brand_soft']}; border: 2px solid {C['brand_edge']};
         border-radius: 12px; padding: 14px 16px; margin: 12px 0;
-        direction: rtl; text-align: right;
+        direction: {direction(lang)}; text-align: {align(lang)};
         font-size: {1.1 * font_scale:.2f}em; line-height: 1.9;
         color: {C['brand']};
     }}
