@@ -38,6 +38,7 @@ TENSE_EN = {'PERF': 'Past', 'IMPF': 'Present', 'IMPV': 'Imperative'}
 VOICE_UR = {'ACT': 'معروف', 'PASS': 'مجہول'}
 VOICE_EN = {'ACT': 'Active', 'PASS': 'Passive'}
 MOOD_UR = {'IND': 'مرفوع', 'SUBJ': 'منصوب', 'JUS': 'مجزوم'}
+MOOD_EN = {'IND': 'indicative', 'SUBJ': 'subjunctive', 'JUS': 'jussive'}
 
 PGN_UR = {
     '3MS': 'واحد مذکر غائب', '3MD': 'تثنیہ مذکر غائب', '3MP': 'جمع مذکر غائب',
@@ -323,6 +324,8 @@ def describe_parse(parse: dict, lang: str = 'ur') -> str:
     if lang == 'en':
         bits = [TENSE_EN.get(tense, ''), VOICE_EN.get(voice, ''),
                 PGN_EN.get(pgn, '')]
+        if mood and mood != 'IND':
+            bits.append(MOOD_EN.get(mood, ''))
     else:
         bits = [TENSE_UR.get(tense, ''), VOICE_UR.get(voice, ''),
                 PGN_UR.get(pgn, '')]

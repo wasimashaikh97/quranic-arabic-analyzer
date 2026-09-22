@@ -34,15 +34,15 @@ LETTER_ROWS = [
 
 #: harakat, with the name a student knows them by
 HARAKAT = [
-    ('َ', 'فتحہ'),      # َ
-    ('ِ', 'کسرہ'),      # ِ
-    ('ُ', 'ضمہ'),       # ُ
-    ('ْ', 'سکون'),      # ْ
-    ('ّ', 'تشدید'),     # ّ
-    ('ً', 'تنوین فتح'),  # ً
-    ('ٍ', 'تنوین کسر'),  # ٍ
-    ('ٌ', 'تنوین ضم'),   # ٌ
-    ('ٰ', 'کھڑا زبر'),   # ٰ
+    ('َ', 'فتحہ', 'fatha'),
+    ('ِ', 'کسرہ', 'kasra'),
+    ('ُ', 'ضمہ', 'damma'),
+    ('ْ', 'سکون', 'sukun'),
+    ('ّ', 'تشدید', 'shadda'),
+    ('ً', 'تنوین فتح', 'tanwin fath (-an)'),
+    ('ٍ', 'تنوین کسر', 'tanwin kasr (-in)'),
+    ('ٌ', 'تنوین ضم', 'tanwin damm (-un)'),
+    ('ٰ', 'کھڑا زبر', 'dagger alef'),
 ]
 
 
@@ -118,11 +118,12 @@ def render_keyboard(lang: str = 'ur', on_search=None):
                                                                     'حرکات')),
             unsafe_allow_html=True)
         cols = st.columns(len(HARAKAT))
-        for i, (mark, name) in enumerate(HARAKAT):
+        for i, (mark, name_ur, name_en) in enumerate(HARAKAT):
             # ـ is a tatweel: it gives the mark something to sit on so the
             # button shows «ـَ» rather than a mark floating on its own
             if cols[i].button('ـ' + mark, key='kb_h_%d' % i,
-                              help=name, use_container_width=True):
+                              help=name_en if lang == 'en' else name_ur,
+                              use_container_width=True):
                 append(mark)
                 st.rerun()
 
@@ -131,7 +132,7 @@ def render_keyboard(lang: str = 'ur', on_search=None):
                     unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns(4)
         if c1.button('⌫', key='kb_back', use_container_width=True,
-                     help={'en': 'Backspace'}.get(lang, 'ایک حرف مٹائیں')):
+                     help={'en': 'Backspace', 'ar': 'حذف حرف'}.get(lang, 'ایک حرف مٹائیں')):
             backspace()
             st.rerun()
         if c2.button({'en': 'Space', 'ar': 'مسافة'}.get(lang, 'فاصلہ'),

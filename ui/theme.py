@@ -176,6 +176,25 @@ _T = {
     'available': {'ur': 'دستیاب', 'ar': 'متوفر', 'en': 'Available'},
     'unavailable': {'ur': 'دستیاب نہیں', 'ar': 'غير متوفر', 'en': 'Not available'},
     'sigha_count': {'ur': 'صیغے', 'ar': 'صيغة', 'en': 'forms'},
+    'welcome': {'ur': 'اوپر خانے میں کوئی عربی فعل لکھیں اور «تجزیہ کریں» دبائیں۔',
+                'ar': 'اكتب فعلاً عربياً في الخانة أعلاه واضغط «حلّل».',
+                'en': 'Type an Arabic verb in the box above and press «Analyse».'},
+    'your_word': {'ur': 'آپ کا لفظ', 'ar': 'كلمتك', 'en': 'Your word'},
+    'four_forms': {'ur': 'چار بنیادی صورتیں', 'ar': 'الصور الأربع الأساسية',
+                   'en': 'The four principal forms'},
+    'meaning': {'ur': 'معنی', 'ar': 'المعنى', 'en': 'Meaning'},
+    'singular': {'ur': 'واحد', 'ar': 'مفرد', 'en': 'Singular'},
+    'dual': {'ur': 'مثنی', 'ar': 'مثنّى', 'en': 'Dual'},
+    'plural': {'ur': 'جمع', 'ar': 'جمع', 'en': 'Plural'},
+    'abwaab_title': {'ur': '📚 ابواب ثلاثی مزید فیہ',
+                     'ar': '📚 أبواب الثلاثي المزيد فيه',
+                     'en': '📚 The eight abwaab of the augmented triliteral verb'},
+    'abwaab_intro': {'ur': 'عربی فعل کے ثلاثی مزید فیہ آٹھ ابواب — ہر باب کا نام، وزن، معنی اور مثالیں۔',
+                     'ar': 'الأبواب الثمانية للفعل الثلاثي المزيد فيه — اسم كل باب ووزنه ومعناه وأمثلته.',
+                     'en': 'The eight abwaab of the augmented triliteral verb — each with its name, pattern, meaning and examples.'},
+    'pattern_note': {'ur': 'یہ گردان مادہ (ف ع ل) پر بنائی گئی ہے تاکہ وزن واضح ہو۔',
+                     'ar': 'هذا التصريف مبنيّ على المادة (ف ع ل) ليتّضح الوزن.',
+                     'en': 'This conjugation is built on the root ف ع ل so the pattern itself is visible.'},
 }
 
 
@@ -196,6 +215,47 @@ def direction(lang: str) -> str:
 
 def align(lang: str) -> str:
     return 'right' if is_rtl(lang) else 'left'
+
+
+def gloss(row: dict, lang: str, ur: str = 'meaning_urdu',
+          en: str = 'meaning_english') -> str:
+    """The reader's own meaning, and only that.
+
+    English mode shows English, Urdu mode shows Urdu.  Arabic mode has no
+    Arabic gloss to draw on, so it shows both rather than guessing which the
+    reader has."""
+    u, e = (row or {}).get(ur) or '', (row or {}).get(en) or ''
+    if lang == 'en':
+        return e or u
+    if lang == 'ur':
+        return u or e
+    return ' · '.join(x for x in (u, e) if x)
+
+
+def baab_name(info: dict, lang: str) -> str:
+    """The باب as the reader names it: «Form IV — إفعال» in English, the
+    Arabic term otherwise."""
+    info = info or {}
+    if lang == 'en':
+        return info.get('name_en') or info.get('name_ar') or ''
+    return info.get('name_ar') or ''
+
+
+_TRANSITIVITY = {
+    'متعدی': {'en': 'Transitive', 'ar': 'متعدٍّ'},
+    'لازم': {'en': 'Intransitive', 'ar': 'لازم'},
+}
+
+
+def transitivity(value: str, lang: str) -> str:
+    return _TRANSITIVITY.get((value or '').strip(), {}).get(lang) or value or ''
+
+
+def sigha_label(row: dict, lang: str) -> str:
+    row = row or {}
+    if lang == 'en':
+        return row.get('sigha_english') or row.get('sigha_urdu') or ''
+    return row.get('sigha_urdu') or row.get('sigha_english') or ''
 
 
 # ---------------------------------------------------------------------------
@@ -649,8 +709,10 @@ def gardaan_table(rows, lang: str = 'ur', show_meanings: bool = True,
                 f'</div>')
 
     heads = ['#', t('th_pronoun', lang), t('th_sigha', lang), t('th_arabic', lang)]
+    both = lang not in ('en', 'ur')          # Arabic mode: no Arabic gloss exists
     if show_meanings:
-        heads += [t('th_urdu', lang), t('th_english', lang)]
+        heads += ([t('th_urdu', lang), t('th_english', lang)] if both
+                  else [t('meaning', lang)])
     if is_rtl(lang):
         heads = list(reversed(heads))
 
@@ -659,14 +721,18 @@ def gardaan_table(rows, lang: str = 'ur', show_meanings: bool = True,
         cells = [
             f'<td class="qa-num">{i}</td>',
             f'<td class="qa-pron">{esc(row.get("pronoun_arabic"))}</td>',
-            f'<td class="qa-ur">{esc(row.get("sigha_urdu"))}</td>',
+            f'<td class="{"qa-en" if lang == "en" else "qa-ur"}">{esc(sigha_label(row, lang))}</td>',
             f'<td class="qa-ar">{esc(row.get("arabic"))}</td>',
         ]
         if show_meanings:
-            cells += [
-                f'<td class="qa-ur">{esc(row.get("meaning_urdu"))}</td>',
-                f'<td class="qa-en">{esc(row.get("meaning_english"))}</td>',
-            ]
+            if both:
+                cells += [
+                    f'<td class="qa-ur">{esc(row.get("meaning_urdu"))}</td>',
+                    f'<td class="qa-en">{esc(row.get("meaning_english"))}</td>',
+                ]
+            else:
+                cells.append(f'<td class="{"qa-en" if lang == "en" else "qa-ur"}">'
+                             f'{esc(gloss(row, lang))}</td>')
         if is_rtl(lang):
             cells = list(reversed(cells))
         body.append('<tr>%s</tr>' % ''.join(cells))
@@ -710,16 +776,19 @@ def gardaan_grid(rows, lang: str = 'ur', na_text: str = None) -> str:
             return '<td class="qa-na">×</td>'
         row = rows[index]
         return ('<td class="qa-ar" title="%s">%s<div class="qa-cell-pron">%s</div></td>'
-                % (esc(row.get('sigha_urdu', '')), esc(row.get('arabic', '')),
+                % (esc(sigha_label(row, lang)), esc(row.get('arabic', '')),
                    esc(row.get('pronoun_arabic', ''))))
 
     head = ('<tr><th class="qa-rowlab"></th>'
-            f'<th>{esc("واحد")}</th><th>{esc("مثنی")}</th><th>{esc("جمع")}</th></tr>')
+            f'<th>{esc(t("singular", lang))}</th><th>{esc(t("dual", lang))}</th>'
+            f'<th>{esc(t("plural", lang))}</th></tr>')
 
     body = []
     for label_ur, label_en, single, dual, plural in layout:
-        label = ('<td class="qa-rowlab">%s<div class="qa-rowlab-en">%s</div></td>'
-                 % (esc(label_ur), esc(label_en)))
+        # one label, in the reader's language — the Arabic grammatical term
+        # for Urdu and Arabic readers, the English one for English readers
+        label = ('<td class="qa-rowlab">%s</td>'
+                 % esc(label_en if lang == 'en' else label_ur))
         if dual is None:
             # the first person has no dual: the book merges it into the plural
             cells = (cell(single)
@@ -730,29 +799,33 @@ def gardaan_grid(rows, lang: str = 'ur', na_text: str = None) -> str:
             cells = cell(single) + cell(dual) + cell(plural)
         body.append('<tr>%s%s</tr>' % (label, cells))
 
-    return ('<div class="qa-table-wrap"><table class="qa-table qa-grid-table" dir="rtl">'
+    return ('<div class="qa-table-wrap"><table class="qa-table qa-grid-table" dir="%s">'
             '<thead>%s</thead><tbody>%s</tbody></table></div>'
-            % (head, ''.join(body)))
+            % (direction(lang), head, ''.join(body)))
 
 
 def gardaan_meaning_list(rows, lang: str = 'ur') -> str:
     """The Urdu/English gloss of each صیغہ, as the book lists them."""
     if not rows:
         return ''
+    both = lang not in ('en', 'ur')
     items = []
     for i, row in enumerate(rows, start=1):
-        items.append(
-            '<tr><td class="qa-num">%d</td>'
-            '<td class="qa-ar">%s</td>'
-            '<td class="qa-ur">%s</td>'
-            '<td class="qa-en">%s</td></tr>'
-            % (i, esc(row.get('arabic')), esc(row.get('meaning_urdu')),
-               esc(row.get('meaning_english'))))
-    return ('<div class="qa-table-wrap"><table class="qa-table" dir="rtl">'
-            '<thead><tr><th>#</th><th>%s</th><th>%s</th><th>%s</th></tr></thead>'
+        if both:
+            meaning = ('<td class="qa-ur">%s</td><td class="qa-en">%s</td>'
+                       % (esc(row.get('meaning_urdu')), esc(row.get('meaning_english'))))
+        else:
+            meaning = ('<td class="%s">%s</td>'
+                       % ('qa-en' if lang == 'en' else 'qa-ur', esc(gloss(row, lang))))
+        items.append('<tr><td class="qa-num">%d</td><td class="qa-ar">%s</td>%s</tr>'
+                     % (i, esc(row.get('arabic')), meaning))
+    heads = ([t('th_urdu', lang), t('th_english', lang)] if both
+             else [t('meaning', lang)])
+    return ('<div class="qa-table-wrap"><table class="qa-table" dir="%s">'
+            '<thead><tr><th>#</th><th>%s</th>%s</tr></thead>'
             '<tbody>%s</tbody></table></div>'
-            % (esc(t('th_arabic', lang)), esc(t('th_urdu', lang)),
-               esc(t('th_english', lang)), ''.join(items)))
+            % (direction(lang), esc(t('th_arabic', lang)),
+               ''.join('<th>%s</th>' % esc(h) for h in heads), ''.join(items)))
 
 
 def simple_table(headers, rows, lang: str = 'ur', cell_classes=None) -> str:

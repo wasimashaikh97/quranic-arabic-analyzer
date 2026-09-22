@@ -255,7 +255,7 @@ class VerbAnalyzer:
         except Exception:
             return []
 
-    def quranic_to_record(self, entry: dict) -> dict:
+    def quranic_to_record(self, entry: dict, lang: str = 'ur') -> dict:
         """Shape a Quranic index entry like a curated verb record.
 
         The interface already knows how to render a verb, so a Quranic verb is
@@ -312,21 +312,36 @@ class VerbAnalyzer:
             'quran_count': entry.get('count', 0),
             'quran_forms': entry.get('surface_count', 0),
             'headword_attested': entry.get('headword_attested', False),
-            'unavailable_note': self._quranic_note(entry),
+            'unavailable_note': self._quranic_note(entry, lang),
         }
         return record
 
-    @staticmethod
-    def _quranic_note(entry: dict) -> str:
+    _NOTE = {
+        'ur': ('یہ فعل قرآن مجید میں %d مرتبہ آیا ہے۔',
+               'اس کی لغوی (ڈکشنری) صورت قرآن میں نہیں آئی، اس لیے یہاں قرآن '
+               'میں موجود صورت دکھائی گئی ہے۔',
+               'صرف وہی صیغے دکھائے گئے ہیں جو قرآن میں موجود ہیں؛ باقی '
+               'صورتیں خود سے نہیں بنائی گئیں۔'),
+        'en': ('This verb occurs %d times in the Quran.',
+               'Its dictionary form does not occur in the Quran, so the form '
+               'that does occur is shown here.',
+               'Only the forms attested in the Quran are shown; the rest were '
+               'not constructed.'),
+        'ar': ('ورد هذا الفعل في القرآن الكريم %d مرة.',
+               'صورته المعجمية لم ترد في القرآن، فعُرضت هنا الصورة الواردة.',
+               'لم تُعرض إلا الصيغ الواردة في القرآن؛ ولم تُبنَ الصور الأخرى.'),
+    }
+
+    @classmethod
+    def _quranic_note(cls, entry: dict, lang: str = 'ur') -> str:
+        count_msg, no_head, only_attested = cls._NOTE.get(lang, cls._NOTE['ur'])
         missing = [k for k in ('past_active', 'present_active')
                    if k not in (entry.get('principal') or {})]
-        bits = ['یہ فعل قرآن مجید میں %d مرتبہ آیا ہے۔' % entry.get('count', 0)]
+        bits = [count_msg % entry.get('count', 0)]
         if not entry.get('headword_attested'):
-            bits.append('اس کی لغوی (ڈکشنری) صورت قرآن میں نہیں آئی، اس لیے '
-                        'یہاں قرآن میں موجود صورت دکھائی گئی ہے۔')
+            bits.append(no_head)
         if missing:
-            bits.append('صرف وہی صیغے دکھائے گئے ہیں جو قرآن میں موجود ہیں؛ '
-                        'باقی صورتیں خود سے نہیں بنائی گئیں۔')
+            bits.append(only_attested)
         return ' '.join(bits)
 
     def islam360_enrich(self, occurrences: list, root: str = '') -> list:
@@ -486,13 +501,13 @@ class VerbAnalyzer:
     def _quranic_result(self, hits: list, cleaned: str, lang: str) -> dict:
         best = hits[0]
         entry = best['entry']
-        record = self.quranic_to_record(entry)
+        record = self.quranic_to_record(entry, lang)
         conj = self.conjugate(record) if record.get('present_3ms') \
             or record.get('past_3ms') else {k: [] for k in TENSE_ORDER}
 
         alternatives = []
         for h in hits[1:8]:
-            alternatives.append(self.quranic_to_record(h['entry']))
+            alternatives.append(self.quranic_to_record(h['entry'], lang))
 
         result = {
             'found': True,

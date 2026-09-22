@@ -177,8 +177,7 @@ def render_home(analyzer, pdf_gen, lang: str):
 
     result = st.session_state.result
     if not result:
-        theme.notice('اوپر خانے میں کوئی عربی فعل لکھیں اور «تجزیہ کریں» دبائیں۔',
-                     'info')
+        theme.notice(t('welcome', lang), 'info')
         return
     if not result.get('found'):
         render_not_found(result, lang)
@@ -245,7 +244,7 @@ def render_not_found(result: dict, lang: str):
         for i, verb in enumerate(suggestions):
             with cols[i % len(cols)]:
                 if st.button('%s — %s' % (verb.get('arabic'),
-                                          verb.get('meaning_urdu')),
+                                          theme.gloss(verb, lang)),
                              key='sugg_%s' % verb.get('id'),
                              use_container_width=True):
                     open_verb(verb)
@@ -264,19 +263,25 @@ def render_verb_page(analyzer, pdf_gen, result: dict, lang: str):
     if parsed:
         with _section('⚡', t('parsed_as', lang), lang, expanded=True):
             st.markdown(theme.fact_grid([
-                ('آپ کا لفظ', parsed.get('input_word', '')),
+                (t('your_word', lang), parsed.get('input_word', '')),
                 (t('base_verb', lang), parsed.get('base_verb', '')),
-                (t('tense', lang), parsed.get('tense_urdu', '')),
-                (t('th_sigha', lang), parsed.get('sigha_urdu', '')),
+                (t('tense', lang), parsed.get('tense_english' if lang == 'en'
+                                              else 'tense_urdu', '')),
+                (t('th_sigha', lang), theme.sigha_label(parsed, lang)),
             ], small_keys=(t('tense', lang), t('th_sigha', lang))),
                 unsafe_allow_html=True)
 
     # ---- the verb itself ------------------------------------------------
+    # the reader's own meaning only; Arabic mode has no Arabic gloss, so both
+    ur_m = ('<div class="qa-verb-meaning">%s</div>'
+            % theme.esc(verb.get('meaning_urdu', '')))
+    en_m = ('<div class="qa-verb-meaning-en">%s</div>'
+            % theme.esc(verb.get('meaning_english', '')))
+    meaning_html = en_m if lang == 'en' else ur_m if lang == 'ur' else ur_m + en_m
     st.markdown(
         f"""<div class="qa-verb-banner">
             <div class="qa-verb">{theme.esc(verb.get('arabic',''))}</div>
-            <div class="qa-verb-meaning">{theme.esc(verb.get('meaning_urdu',''))}</div>
-            <div class="qa-verb-meaning-en">{theme.esc(verb.get('meaning_english',''))}</div>
+            {meaning_html}
         </div>""", unsafe_allow_html=True)
 
     # ---- ① فعل کی معلومات — the one section open by default -------------
@@ -284,20 +289,23 @@ def render_verb_page(analyzer, pdf_gen, result: dict, lang: str):
     with _section('①', t('verb_info', lang), lang, expanded=True):
         st.markdown(theme.fact_grid([
             (t('root', lang), verb.get('root', '')),
-            (t('baab', lang), verb.get('baab_name_arabic', '')),
+            (t('baab', lang), theme.baab_name(result.get('baab'), lang)
+                              or verb.get('baab_name_arabic', '')),
             (t('wazn', lang), verb.get('wazn', '')),
-            (t('verb_type', lang), vtype.get('title_ur', '')),
+            (t('verb_type', lang), vtype.get(
+                {'en': 'title_en', 'ar': 'title_ar'}.get(lang, 'title_ur'), '')),
             (t('masdar', lang), verb.get('masdar') or '—'),
             (t('ism_fail', lang), verb.get('ism_fail') or '—'),
             (t('ism_mafool', lang), verb.get('ism_mafool') or na),
-            (t('transitivity', lang), verb.get('transitivity', '')),
+            (t('transitivity', lang),
+             theme.transitivity(verb.get('transitivity', ''), lang)),
         ], small_keys=(t('verb_type', lang), t('transitivity', lang))),
             unsafe_allow_html=True)
         if verb.get('unavailable_note'):
             theme.notice(verb['unavailable_note'])
 
     # ---- ② چار بنیادی صورتیں --------------------------------------------
-    with _section('②', 'چار بنیادی صورتیں', lang):
+    with _section('②', t('four_forms', lang), lang):
         st.markdown(theme.fact_grid([
             (t('past_active', lang), verb.get('past_3ms') or '—'),
             (t('present_active', lang), verb.get('present_3ms') or '—'),
@@ -314,7 +322,7 @@ def render_verb_page(analyzer, pdf_gen, result: dict, lang: str):
                 unsafe_allow_html=True)
             st.markdown(theme.gardaan_grid(rows, lang), unsafe_allow_html=True)
             if rows:
-                with st.expander('%s — %s' % (t('th_urdu', lang),
+                with st.expander('%s — %s' % (t('meaning', lang),
                                               t(key, lang))):
                     st.markdown(theme.gardaan_meaning_list(rows, lang),
                                 unsafe_allow_html=True)
@@ -344,11 +352,13 @@ def render_verb_page(analyzer, pdf_gen, result: dict, lang: str):
         if derived:
             st.markdown(theme.simple_table(
                 [t('th_sigha', lang), t('th_arabic', lang), t('wazn', lang),
-                 t('th_urdu', lang)],
-                [[d.get('label_ur', ''), d.get('arabic', ''),
-                  d.get('pattern', ''), d.get('meaning_urdu', '')]
+                 t('meaning', lang)],
+                [[d.get('label_en' if lang == 'en' else 'label_ur', ''),
+                  d.get('arabic', ''), d.get('pattern', ''),
+                  theme.gloss(d, lang)]
                  for d in derived.values() if isinstance(d, dict)],
-                lang, ['qa-ur', 'qa-ar', 'qa-pron', 'qa-ur']),
+                lang, ['qa-ur', 'qa-ar', 'qa-pron',
+                       'qa-en' if lang == 'en' else 'qa-ur']),
                 unsafe_allow_html=True)
         else:
             theme.notice(na)
@@ -361,13 +371,15 @@ def render_verb_page(analyzer, pdf_gen, result: dict, lang: str):
     # ---- ⑦ اس باب کی وضاحت ----------------------------------------------
     baab = result.get('baab') or {}
     with _section('⑦', '%s — %s' % (t('baab', lang),
-                                    baab.get('name_ar', '')), lang):
-        st.markdown(
-            f'<div class="qa-info">{theme.esc(baab.get("meaning_ur",""))}</div>',
-            unsafe_allow_html=True)
-        st.markdown(f'<div class="qa-card" dir="ltr" style="text-align:left">'
-                    f'{theme.esc(baab.get("meaning_en",""))}</div>',
-                    unsafe_allow_html=True)
+                                    theme.baab_name(baab, lang)), lang):
+        if lang != 'en':
+            st.markdown(
+                f'<div class="qa-info">{theme.esc(baab.get("meaning_ur",""))}</div>',
+                unsafe_allow_html=True)
+        if lang != 'ur':
+            st.markdown(f'<div class="qa-card" dir="ltr" style="text-align:left">'
+                        f'{theme.esc(baab.get("meaning_en",""))}</div>',
+                        unsafe_allow_html=True)
 
     # ---- ⑧ قرآن مجید میں استعمال ----------------------------------------
     ayaat = result.get('quranic_usage') or []
@@ -398,18 +410,18 @@ def render_afaal(analyzer, verb: dict, lang: str):
         if entry['available']:
             for v in entry['verbs']:
                 here = ' ◀' if v.get('id') == verb.get('id') else ''
-                rows.append([info['name_ar'] + here, v.get('arabic', ''),
+                rows.append([theme.baab_name(info, lang) + here, v.get('arabic', ''),
                              v.get('present_3ms', ''),
                              v.get('past_passive_3ms') or na,
-                             v.get('masdar', ''), v.get('meaning_urdu', '')])
+                             v.get('masdar', ''), theme.gloss(v, lang)])
                 present.append(v)
         else:
-            rows.append([info['name_ar'], '×', '×', '×', '×',
+            rows.append([theme.baab_name(info, lang), '×', '×', '×', '×',
                          t('unavailable', lang)])
 
     st.markdown(theme.simple_table(
         [t('baab', lang), t('past_active', lang), t('present_active', lang),
-         t('past_passive', lang), t('masdar', lang), t('th_urdu', lang)],
+         t('past_passive', lang), t('masdar', lang), t('meaning', lang)],
         rows, lang, ['qa-ur', 'qa-ar', 'qa-ar', 'qa-ar', 'qa-ar', 'qa-ur']),
         unsafe_allow_html=True)
 
@@ -535,7 +547,7 @@ def _render_ayaat(usage: list, lang: str = 'ur'):
               % theme.esc(ex.get('translation_urdu', '')))
         en = ('<div class="qa-ayah-en">%s</div>'
               % theme.esc(ex.get('translation_english', '')))
-        translations = en + ur if lang == 'en' else ur + en
+        translations = en if lang == 'en' else ur if lang == 'ur' else ur + en
         st.markdown(
             f"""<div class="qa-card" dir="{direction}">
               <div class="qa-ayah-ref">{theme.esc(surah_word)} {theme.esc(surah)}

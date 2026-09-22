@@ -15,10 +15,9 @@ from .theme import t
 
 def render_abwaab_view(analyzer, lang: str = 'ur', font_scale: float = 1.0,
                        on_select=None, verb_data: dict = None):
-    st.markdown('### 📚 ابواب ثلاثی مزید فیہ')
-    st.markdown(
-        f'<div class="qa-info">{theme.esc("عربی فعل کے ثلاثی مزید فیہ آٹھ ابواب — ہر باب کا نام، وزن، معنی اور مثالیں۔")}</div>',
-        unsafe_allow_html=True)
+    st.markdown('### %s' % t('abwaab_title', lang))
+    st.markdown(f'<div class="qa-info">{theme.esc(t("abwaab_intro", lang))}</div>',
+                unsafe_allow_html=True)
 
     # ---- overview table over all eight ----------------------------------
     headers = ['#', t('baab', lang), t('past_active', lang),
@@ -28,14 +27,14 @@ def render_abwaab_view(analyzer, lang: str = 'ur', font_scale: float = 1.0,
     rows = []
     for i, form in enumerate(MAZEED_ORDER, start=1):
         b = BAAB_INFO[form]
-        rows.append([i, b['name_ar'], b['wazn_past'], b['wazn_present'],
+        rows.append([i, theme.baab_name(b, lang), b['wazn_past'], b['wazn_present'],
                      b['wazn_past_passive'], b['wazn_present_passive'],
                      b['masdar_pattern']])
     st.markdown(theme.simple_table(headers, rows, lang, classes),
                 unsafe_allow_html=True)
 
     # ---- Form I for reference --------------------------------------------
-    with st.expander('📖 %s — %s' % (BAAB_INFO[1]['name_ar'],
+    with st.expander('📖 %s — %s' % (theme.baab_name(BAAB_INFO[1], lang),
                                      BAAB_INFO[1]['wazn_past']), expanded=False):
         _render_one(BAAB_INFO[1], analyzer, lang, on_select)
 
@@ -44,14 +43,15 @@ def render_abwaab_view(analyzer, lang: str = 'ur', font_scale: float = 1.0,
     # ---- one section per باب ---------------------------------------------
     for i, form in enumerate(MAZEED_ORDER, start=1):
         b = BAAB_INFO[form]
-        with st.expander('📖 %d. %s — %s' % (i, b['name_ar'], b['wazn_past']),
+        with st.expander('📖 %d. %s — %s' % (i, theme.baab_name(b, lang),
+                                             b['wazn_past']),
                          expanded=(i == 1)):
             _render_one(b, analyzer, lang, on_select)
 
 
 def _render_one(baab: dict, analyzer, lang: str, on_select=None):
     st.markdown(theme.fact_grid([
-        (t('baab', lang), baab['name_ar']),
+        (t('baab', lang), theme.baab_name(baab, lang)),
         (t('past_active', lang), baab['wazn_past']),
         (t('present_active', lang), baab['wazn_present']),
         (t('past_passive', lang), baab['wazn_past_passive']),
@@ -61,22 +61,25 @@ def _render_one(baab: dict, analyzer, lang: str, on_select=None):
         (t('ism_mafool', lang), baab['ism_mafool_pattern']),
     ]), unsafe_allow_html=True)
 
-    st.markdown(f'<div class="qa-info">{theme.esc(baab["meaning_ur"])}</div>',
-                unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="qa-card" dir="ltr" style="text-align:left">'
-        f'{theme.esc(baab["meaning_en"])}</div>', unsafe_allow_html=True)
+    if lang != 'en':
+        st.markdown(f'<div class="qa-info">{theme.esc(baab["meaning_ur"])}</div>',
+                    unsafe_allow_html=True)
+    if lang != 'ur':
+        st.markdown(
+            f'<div class="qa-card" dir="ltr" style="text-align:left">'
+            f'{theme.esc(baab["meaning_en"])}</div>', unsafe_allow_html=True)
 
     # ---- verified verbs of this باب in the lexicon -----------------------
     verbs = analyzer.get_verbs_by_baab(baab['form']) if analyzer else []
     if verbs:
         st.markdown(f'**{t("examples", lang)}**')
         headers = [t('verb', lang), t('root', lang), t('present_active', lang),
-                   t('masdar', lang), t('th_urdu', lang)]
-        classes = ['qa-ar', 'qa-pron', 'qa-ar', 'qa-ar', 'qa-ur']
+                   t('masdar', lang), t('meaning', lang)]
+        classes = ['qa-ar', 'qa-pron', 'qa-ar', 'qa-ar',
+                   'qa-en' if lang == 'en' else 'qa-ur']
         rows = [[v.get('arabic', ''), v.get('root', ''),
                  v.get('present_3ms', ''), v.get('masdar', ''),
-                 v.get('meaning_urdu', '')] for v in verbs]
+                 theme.gloss(v, lang)] for v in verbs]
         st.markdown(theme.simple_table(headers, rows, lang, classes),
                     unsafe_allow_html=True)
 
@@ -97,7 +100,7 @@ def _render_one(baab: dict, analyzer, lang: str, on_select=None):
                                              baab['wazn_past'])):
                 st.markdown(
                     f'<div class="qa-info">'
-                    f'{theme.esc("یہ گردان مادہ (ف ع ل) پر بنائی گئی ہے تاکہ وزن واضح ہو۔")}'
+                    f'{theme.esc(t("pattern_note", lang))}'
                     f'</div>', unsafe_allow_html=True)
                 for key in ('past_active', 'present_active', 'past_passive',
                             'present_passive', 'imperative', 'prohibition'):
