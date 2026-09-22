@@ -16,7 +16,7 @@ the checks described under each area.
 | Islam360 — curated verbs | **PASS** | 84/84 found; 81/84 roots in Islam360 (ر و ي and ك س ر are textbook verbs the Quran never uses — the app says so). 287/287 curated occurrences confirmed word‑for‑word. One error found and removed: 27:22 يَقِينٍ (noun, ي ق ن) was filed under وَقَى. |
 | Islam360 — index verbs | **PASS** | 5,389 of 5,463 cited occurrences (98.6 %) confirmed word‑for‑word; 36 root‑at‑ayah only; 38 words Islam360 has not root‑tagged; 0 ayaat Islam360 lacks. 1,435 of 1,472 verbs fully confirmed; 930 of 941 roots resolve (the 11 others are quadriliterals / rarities Islam360 analyses differently). |
 | Islam360 — honesty of labelling | **PASS** | ✓ shown per ayah only when Islam360's own tagging agrees. Text, translations, surah names and لغات labelled Islam360; صیغہ labelled as morphology. Root‑wide lists shown only folded away and labelled not صیغہ‑analysed; never in the PDF. |
-| Islam360 — public deployment | **BLOCKED (licensing)** | `data/islam360_index.json` is Islam360's copyrighted content and is git‑ignored. A deployment points at a copy it is entitled to via `ISLAM360_INDEX_PATH`; otherwise the app runs NOT CONNECTED and says so, naming the fallback sources. |
+| Islam360 — public deployment | **READY, pending permission** | The index is copyrighted and git‑ignored. A deployment fetches it once from a private URL via the `ISLAM360_INDEX_URL` + `ISLAM360_INDEX_TOKEN` secrets (gzip accepted, fails soft). Serving Islam360's data to others still needs Islam360's permission. |
 | Arabic + harakat keyboard | **PASS** | 37 letters, 9 harakat, controls, live preview. Browser‑tested at 390 px: opens, keys fill the box, search runs, no horizontal overflow. |
 | گردان — 14 صیغے, four mandatory forms | **PASS** | All 84 curated verbs; index verbs show only attested forms and say so. |
 | Baab detection | **PASS** | باب from the corpus VF tag for index verbs; curated باب verified; all of 1–10 represented. |
@@ -24,6 +24,7 @@ the checks described under each area.
 | PDF | **PASS** | 124 verbs × 2 PDFs opened with PyMuPDF: no zero‑page or blank‑page output. Ayah page carries Islam360 text, both translations, word, صیغہ and «اسلام۳۶۰ سے تصدیق شدہ» when confirmed. |
 | UI — Streamlit harness | **PASS** | 124 verbs (84 curated + 40 index) swept: 0 exceptions, all sections present, Islam360 panel present. |
 | UI — real browser (Chrome) | **PASS** | 20/20 checks on 1280 px desktop and 390 px phone: verb page, Quranic section with per‑ayah ✓, PDF buttons, did‑you‑mean click, نَامَ explanation, Latin input message, abwaab page, English mode, keyboard flow, no overflow. |
+| Interface language | **PASS** | English mode shows English only (labels, صیغہ, meanings, translations, notices, باب names, keyboard help); Urdu mode Urdu only; Arabic mode Arabic labels with both glosses since no Arabic gloss exists. Verified in Chrome for all three. |
 | Invalid input | **PASS** | 16 inputs (empty, spaces, Latin, digits, punctuation, single letters, RTL marks, 300 chars, lone ٱ) — 0 crashes, each with a message. |
 | Performance | **PASS** | Cold analyzer init ≈ 0.1 s; warm search ≈ 1 ms; index and Islam360 data loaded once per process. |
 | Unit tests | **PASS** | 165 tests, all passing (`tests.test_analyzer tests.test_ui tests.test_quran_index`). |

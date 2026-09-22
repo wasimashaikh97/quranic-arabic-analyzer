@@ -56,16 +56,87 @@ DEFAULT_INDEX_PATH = (Path(__file__).parent.parent / 'data'
 ENV_VAR = 'ISLAM360_INDEX_PATH'
 
 
-def _configured_path() -> Path:
-    """The index location: the operator's if they named one, else the default."""
-    override = (os.environ.get(ENV_VAR) or '').strip()
-    if not override:
+#: A deployment that may not carry the file in git can fetch it at start-up
+#: from a private location the operator controls — a private GitHub repo's
+#: raw URL, a private Hugging Face dataset, a bucket — and cache it on disk::
+#:
+#:     ISLAM360_INDEX_URL=https://raw.githubusercontent.com/<you>/<private>/main/islam360_index.json
+#:     ISLAM360_INDEX_TOKEN=<token that may read it>
+#:
+#: A ``.gz`` URL is decompressed.  Any failure — no network, wrong token,
+#: bad JSON — leaves the app NOT CONNECTED and saying so; it never raises.
+ENV_URL = 'ISLAM360_INDEX_URL'
+ENV_TOKEN = 'ISLAM360_INDEX_TOKEN'
+
+#: where a downloaded index is cached; the data folder if writable
+_CACHE_CANDIDATES = (DEFAULT_INDEX_PATH,
+                     Path(os.environ.get('TMPDIR') or os.environ.get('TEMP')
+                          or '/tmp') / 'islam360_index.json')
+
+
+def _setting(name: str) -> str:
+    """An environment variable, or the same key in Streamlit secrets."""
+    value = (os.environ.get(name) or '').strip()
+    if not value:
         try:                                    # Streamlit secrets, if present
             import streamlit as st
-            override = str(st.secrets.get(ENV_VAR, '') or '').strip()
+            value = str(st.secrets.get(name, '') or '').strip()
         except Exception:
-            override = ''
-    return Path(override) if override else DEFAULT_INDEX_PATH
+            value = ''
+    return value
+
+
+def _download_index(url: str, token: str = '') -> Path:
+    """Fetch the index once into a cache file; return its path, or None."""
+    for target in _CACHE_CANDIDATES:
+        if target.exists() and target.stat().st_size > 0:
+            return target
+    import gzip
+    import tempfile
+    import urllib.request
+    request = urllib.request.Request(url, headers={
+        'User-Agent': 'quranic-arabic-analyzer',
+        **({'Authorization': ('Bearer %s' % token)
+            if 'huggingface' in url else ('token %s' % token)}
+           if token else {}),
+    })
+    try:
+        with urllib.request.urlopen(request, timeout=120) as resp:
+            raw = resp.read()
+            gz = (url.lower().endswith('.gz')
+                  or 'gzip' in (resp.headers.get('Content-Encoding') or '')
+                  or raw[:2] == b'\x1f\x8b')
+        if gz:
+            raw = gzip.decompress(raw)
+        json.loads(raw.decode('utf-8'))            # must be the real thing
+    except Exception:
+        return None
+    for target in _CACHE_CANDIDATES:
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=str(target.parent), suffix='.part')
+            with os.fdopen(fd, 'wb') as fh:
+                fh.write(raw)
+            os.replace(tmp, target)                # atomic: never a half file
+            return target
+        except OSError:
+            continue
+    return None
+
+
+def _configured_path() -> Path:
+    """The index location, in order of preference: a path the operator
+    named, a URL the operator named (downloaded and cached), the default."""
+    override = _setting(ENV_VAR)
+    if override:
+        return Path(override)
+    if not DEFAULT_INDEX_PATH.exists():
+        url = _setting(ENV_URL)
+        if url:
+            fetched = _download_index(url, _setting(ENV_TOKEN))
+            if fetched:
+                return fetched
+    return DEFAULT_INDEX_PATH
 
 
 #: kept for callers that import it by name
@@ -301,6 +372,8 @@ class Islam360Provider(QuranSource):
         return {
             'name': self.name,
             'islam360_verified': True,
+            'origin': ('downloaded' if self.index_path != DEFAULT_INDEX_PATH
+                       or _setting(ENV_URL) else 'local'),
             'ayat': meta.get('ayat'),
             'roots': meta.get('roots'),
             'word_entries': meta.get('word_entries'),

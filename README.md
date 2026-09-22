@@ -263,7 +263,32 @@ instead of committing it:
 ISLAM360_INDEX_PATH=/srv/private/islam360_index.json
 ```
 
-On Streamlit Cloud the same key works as a secret. Anything absent or
+On Streamlit Cloud the same key works as a secret.
+
+### Deploying with Islam360 connected (Streamlit Community Cloud)
+
+The public repository must not carry the index, so the running app fetches it
+once from a private location you control and caches it. Two secrets do it:
+
+```toml
+# Streamlit Cloud -> your app -> Settings -> Secrets
+ISLAM360_INDEX_URL   = "https://raw.githubusercontent.com/<you>/<private-repo>/main/islam360_index.json.gz"
+ISLAM360_INDEX_TOKEN = "<fine-grained token with read access to that repo>"
+```
+
+Steps, once:
+
+1. Build the index on the PC where Islam360 is installed:
+   `python data/build_islam360_index.py`, then compress it:
+   `python -c "import gzip,shutil;shutil.copyfileobj(open('data/islam360_index.json','rb'),gzip.open('islam360_index.json.gz','wb'))"`.
+2. Create a **private** GitHub repository holding only that `.gz` file.
+3. Create a fine-grained personal access token limited to that repository with
+   *Contents: Read*. Put both values in the app's Secrets as above and reboot
+   the app.
+
+`.gz` is decompressed on arrival; a private Hugging Face dataset URL works the
+same way (the token is sent as a Bearer token). If the URL or token is wrong the
+app does not fail: it starts NOT CONNECTED and says so. Anything absent or
 unreadable leaves the app in its honest NOT CONNECTED state, falling back to
 the sources below and naming them openly — it never fails and never pretends.
 

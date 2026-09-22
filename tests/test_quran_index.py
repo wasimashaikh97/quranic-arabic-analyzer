@@ -224,6 +224,63 @@ class TestDidYouMean(Base):
 
 
 # ===========================================================================
+class TestIslam360Download(unittest.TestCase):
+    """A deployment fetches the index from a private URL — and fails soft."""
+
+    @classmethod
+    def setUpClass(cls):
+        import gzip
+        import http.server
+        import json
+        import tempfile
+        import threading
+        cls.tmp = Path(tempfile.mkdtemp())
+        payload = {'meta': {'ayat': 1, 'roots': 1}, 'ayat': {}, 'roots': {},
+                   'words': {}, 'ayah_words': {}}
+        (cls.tmp / 'i.json').write_text(json.dumps(payload), encoding='utf-8')
+        (cls.tmp / 'i.json.gz').write_bytes(
+            gzip.compress(json.dumps(payload).encode('utf-8')))
+        (cls.tmp / 'bad.json').write_text('not json', encoding='utf-8')
+
+        class Quiet(http.server.SimpleHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+        cls.httpd = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 0), lambda *a, **k: Quiet(*a, directory=str(cls.tmp), **k))
+        cls.port = cls.httpd.server_address[1]
+        threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+
+    def _fetch(self, name):
+        from services import quran_source as qs
+        cache = self.tmp / 'cache' / 'islam360_index.json'
+        saved = qs._CACHE_CANDIDATES
+        qs._CACHE_CANDIDATES = (cache,)
+        try:
+            return qs._download_index('http://127.0.0.1:%d/%s' % (self.port, name))
+        finally:
+            qs._CACHE_CANDIDATES = saved
+
+    def test_plain_json_is_fetched_and_cached(self):
+        got = self._fetch('i.json')
+        self.assertIsNotNone(got)
+        self.assertTrue(got.exists() and got.stat().st_size > 10)
+        got.unlink()
+
+    def test_gzip_is_decompressed(self):
+        got = self._fetch('i.json.gz')
+        self.assertIsNotNone(got)
+        self.assertIn(b'"meta"', got.read_bytes()[:40])
+        got.unlink()
+
+    def test_bad_payload_or_missing_url_fails_soft(self):
+        self.assertIsNone(self._fetch('bad.json'))
+        self.assertIsNone(self._fetch('nope.json'))
+
+
 class TestIslam360Status(Base):
     """Islam360 status must reflect reality — connected or not, never faked.
 
