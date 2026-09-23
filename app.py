@@ -465,6 +465,13 @@ def render_quranic(usage: list, lang: str, lughaat: dict = None):
         srcs = ' · '.join('%s: %s' % (k, v)
                           for k, v in (status.get('sources') or {}).items())
         theme.notice('%s\n\n%s' % (status['blocked_message'], srcs))
+        # why the deployment's download did not happen — for the operator,
+        # in English, since it names a secret and an HTTP status
+        fetch = status.get('fetch') or {}
+        if fetch.get('error'):
+            theme.notice('Islam360 download: %s  (token set: %s)'
+                         % (fetch['error'], 'yes' if fetch.get('token_set')
+                            else 'no'), 'info')
 
     # Islam360's own لغات article for the root, when it has one
     if lughaat and lughaat.get('lughaat'):

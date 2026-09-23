@@ -68,6 +68,16 @@ ENV_VAR = 'ISLAM360_INDEX_PATH'
 ENV_URL = 'ISLAM360_INDEX_URL'
 ENV_TOKEN = 'ISLAM360_INDEX_TOKEN'
 
+#: Where this deployment's copy lives.  The repository is private, so the
+#: URL alone reveals nothing and can live in code; the token that unlocks it
+#: is the one thing that must stay a secret.  ISLAM360_INDEX_URL overrides.
+DEFAULT_INDEX_URL = ('https://raw.githubusercontent.com/wasimashaikh97/'
+                     'islam360-index-private/main/islam360_index.json.gz')
+
+#: what happened on the last download attempt, for the status panel
+LAST_FETCH = {'attempted': False, 'url_set': False, 'token_set': False,
+              'error': ''}
+
 #: where a downloaded index is cached; the data folder if writable
 _CACHE_CANDIDATES = (DEFAULT_INDEX_PATH,
                      Path(os.environ.get('TMPDIR') or os.environ.get('TEMP')
@@ -94,6 +104,8 @@ def _download_index(url: str, token: str = '') -> Path:
     import gzip
     import tempfile
     import urllib.request
+    LAST_FETCH.update(attempted=True, url_set=bool(url), token_set=bool(token),
+                      error='')
     request = urllib.request.Request(url, headers={
         'User-Agent': 'quranic-arabic-analyzer',
         **({'Authorization': ('Bearer %s' % token)
@@ -109,7 +121,13 @@ def _download_index(url: str, token: str = '') -> Path:
         if gz:
             raw = gzip.decompress(raw)
         json.loads(raw.decode('utf-8'))            # must be the real thing
-    except Exception:
+    except urllib.error.HTTPError as exc:
+        LAST_FETCH['error'] = 'HTTP %s' % exc.code + (
+            ' — the token cannot read this repository' if exc.code in (401, 403, 404)
+            else '')
+        return None
+    except Exception as exc:
+        LAST_FETCH['error'] = '%s: %s' % (type(exc).__name__, exc)
         return None
     for target in _CACHE_CANDIDATES:
         try:
@@ -131,11 +149,16 @@ def _configured_path() -> Path:
     if override:
         return Path(override)
     if not DEFAULT_INDEX_PATH.exists():
-        url = _setting(ENV_URL)
-        if url:
-            fetched = _download_index(url, _setting(ENV_TOKEN))
+        url = _setting(ENV_URL) or DEFAULT_INDEX_URL
+        token = _setting(ENV_TOKEN)
+        if token:
+            fetched = _download_index(url, token)
             if fetched:
                 return fetched
+        else:
+            LAST_FETCH.update(attempted=False, url_set=bool(url),
+                              token_set=False,
+                              error='no ISLAM360_INDEX_TOKEN secret is set')
     return DEFAULT_INDEX_PATH
 
 
@@ -440,6 +463,13 @@ ISLAM360_OK_MESSAGE = {
     'ar': 'المعلومات القرآنية مأخوذة من إسلام360 المثبّت على هذا الجهاز.',
 }
 
+#: the same, when the data was fetched from the deployment's own private copy
+ISLAM360_OK_MESSAGE_REMOTE = {
+    'ur': 'قرآنی معلومات اسلام۳۶۰ کے ڈیٹا سے تصدیق شدہ ہیں۔',
+    'en': 'Quranic material verified against Islam360 data.',
+    'ar': 'المعلومات القرآنية موثّقة من بيانات إسلام360.',
+}
+
 
 def _pick_active():
     provider = Islam360Provider()
@@ -479,4 +509,9 @@ def verification_status(lang: str = 'ur') -> dict:
     }
     if verified:
         status.update(active.status())
+        if status.get('origin') == 'downloaded':
+            status['ok_message'] = ISLAM360_OK_MESSAGE_REMOTE.get(
+                lang, ISLAM360_OK_MESSAGE_REMOTE['ur'])
+    else:
+        status['fetch'] = dict(LAST_FETCH)
     return status
