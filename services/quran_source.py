@@ -394,6 +394,26 @@ class LocalCorpusProvider(QuranSource):
         'translation_english': 'Sahih International',
     }
 
+    #: the same list in the reader's language — a source named in a
+    #: script they cannot read tells them nothing
+    SOURCES_BY_LANG = {
+        'en': {'Grammar': 'Quranic Arabic Corpus (tagged morphology)',
+               'Verse text': 'Tanzil (Uthmani)',
+               'Urdu translation': 'Fateh Muhammad Jalandhry',
+               'English translation': 'Sahih International'},
+        'ur': {'صرفی تجزیہ': 'قرآنی عربی کارپس',
+               'آیات کا متن': 'تنزیل (عثمانی رسم)',
+               'اردو ترجمہ': 'فتح محمد جالندھری',
+               'انگریزی ترجمہ': 'صحیح انٹرنیشنل'},
+        'ar': {'التحليل الصرفي': 'مدوّنة القرآن العربية',
+               'نص الآيات': 'تنزيل (الرسم العثماني)',
+               'الترجمة الأردية': 'فتح محمد جالندهري',
+               'الترجمة الإنجليزية': 'صحيح إنترناشيونال'},
+    }
+
+    def sources(self, lang: str = 'ur') -> dict:
+        return self.SOURCES_BY_LANG.get(lang) or self.SOURCES_BY_LANG['ur']
+
     def status(self) -> dict:
         return {'name': self.name, 'islam360_verified': False,
                 'sources': self.SOURCES}
@@ -451,7 +471,8 @@ def verification_status(lang: str = 'ur') -> dict:
         'islam360_verified': verified,
         'islam360_configured': verified,
         'active_source': active.name,
-        'sources': getattr(active, 'SOURCES', {}),
+        'sources': (active.sources(lang) if hasattr(active, 'sources')
+                    else getattr(active, 'SOURCES', {})),
         'blocked_message': ISLAM360_BLOCKED_MESSAGE.get(
             lang, ISLAM360_BLOCKED_MESSAGE['ur']),
         'ok_message': ISLAM360_OK_MESSAGE.get(lang, ISLAM360_OK_MESSAGE['ur']),
