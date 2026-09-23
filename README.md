@@ -1,3 +1,13 @@
+---
+title: Quranic Arabic Verb & Sarf
+emoji: 📖
+colorFrom: green
+colorTo: yellow
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 📖 عربی فعل اور گردان — Quranic Arabic Verb & Sarf
 
 A digital **Sarf textbook** for Quran students, built around three jobs:
