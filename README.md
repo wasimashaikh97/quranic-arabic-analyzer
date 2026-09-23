@@ -272,9 +272,14 @@ once from a private location you control and caches it. Two secrets do it:
 
 ```toml
 # Streamlit Cloud -> your app -> Settings -> Secrets
-ISLAM360_INDEX_URL   = "https://raw.githubusercontent.com/<you>/<private-repo>/main/islam360_index.json.gz"
-ISLAM360_INDEX_TOKEN = "<fine-grained token with read access to that repo>"
+ISLAM360_INDEX_TOKEN = "<fine-grained token with Contents: Read on the private index repo>"
 ```
+
+The URL of the private repository is in code (`DEFAULT_INDEX_URL`); it reveals
+nothing without the token. Set `ISLAM360_INDEX_URL` only to point elsewhere.
+If the panel still says NOT CONNECTED after a reboot, it now also says why:
+*no ISLAM360_INDEX_TOKEN secret is set*, or the HTTP status GitHub returned
+(401/403/404 mean the token cannot read that repository).
 
 Steps, once:
 

@@ -136,6 +136,7 @@ def _download_index(url: str, token: str = '') -> Path:
             with os.fdopen(fd, 'wb') as fh:
                 fh.write(raw)
             os.replace(tmp, target)                # atomic: never a half file
+            LAST_FETCH['downloaded'] = True
             return target
         except OSError:
             continue
@@ -395,8 +396,7 @@ class Islam360Provider(QuranSource):
         return {
             'name': self.name,
             'islam360_verified': True,
-            'origin': ('downloaded' if self.index_path != DEFAULT_INDEX_PATH
-                       or _setting(ENV_URL) else 'local'),
+            'origin': 'downloaded' if LAST_FETCH.get('downloaded') else 'local',
             'ayat': meta.get('ayat'),
             'roots': meta.get('roots'),
             'word_entries': meta.get('word_entries'),
